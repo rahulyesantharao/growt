@@ -40,6 +40,8 @@ option(GROWT_BUILD_TBB
   "(optional) builds tests for tbb hash map and unordered map (using wrappers)!" OFF)
 option(GROWT_BUILD_JUNCTION
   "(optional) builds tests for junction tables (Linear, Grampa, Leapfrog)!" OFF)
+option(GROWT_BUILD_LEGACY
+  "(optional) builds tests for legacy tables (Julian Shun's Implementation, LeaHash, URCU, Hopscotch) only possible in the appropriate branch!" ON)
 
 set(GROWT_ALLOCATOR ALIGNED CACHE STRING
   "Specifies the used allocator (only relevant for our tables)!")
@@ -71,7 +73,8 @@ set (OLD_FLAGS ${CMAKE_CXX_FLAGS})
 # set (CMAKE_CXX_FLAGS
 #   "${CMAKE_CXX_FLAGS} -std=c++1y -g -msse4.2 -mcx16 -Wall -Wextra -O3")
 
-set (FLAGS "-std=c++1y -g -msse4.2 -mcx16 -Wall -Wextra -O3")
+set (FLAGS          "-std=c++1y -g -msse4.2 -mcx16 -Wall -Wextra -O3")
+set (FLAGS_NO_ERROR "-std=c++1y -g -msse4.2 -mcx16 -O3")
 
 include_directories(.)
 
@@ -207,6 +210,31 @@ if (GROWT_BUILD_FOLLY)
   endif()
 endif()
 
+if (GROWT_BUILD_LEGACY)
+  message(STATUS "Looking for Hopscotch/LeaHash")
+  find_path(HOPSCOTCH_DIR ConcurrentHopscotchHashMap/data_structures/BitmapHopscotchHashMap.h
+    PATHS ${CMAKE_CURRENT_SOURCE_DIR}/misc/submodules/)
+  if (HOPSCOTCH_DIR)
+    message(STATUS "Looking for Hopscotch/LeaHash -- found")
+    set(HOPSCOTCH_INCLUDE ${HOPSCOTCH_DIR}/ConcurrentHopscotchHashMap/data_structures/)
+    include_directories(${HOPSCOTCH_INCLUDE})
+  else()
+    message(STATUS "Looking for Hopscotch/LeaHash -- not found")
+    message("Cannot find Hopscotch/LeaHash. Therefore, some tests cannot be created! Download their code into the submodules folder!")
+  endif()
+
+  message(STATUS "Looking for Shun's Table")
+  find_path(SHUN_DIR      shun/ndHash/ndHash.h
+    PATHS ${CMAKE_CURRENT_SOURCE_DIR}/misc/submodules)
+  if (SHUN_DIR)
+    message(STATUS "Looking for Shun's Table -- found")
+    set(SHUN_INCLUDE ${SHUN_DIR}/shun/ndHash/)
+    include_directories(${SHUN_INCLUDE})
+  else()
+    message(STATUS "Looking for Shun's Table -- not found")
+    message("Cannot find Shun's Table. Therefore, some tests cannot be created! Download their code into the submodules/shun folder!")
+  endif()
+endif()
 
 if (GROWT_HASHFCT STREQUAL XXHASH)
   message(STATUS "Looking for xxhash")
@@ -224,7 +252,6 @@ if (GROWT_HASHFCT STREQUAL XXHASH)
     set(GROWT_HASHFCT MURMUR2)
   endif()
 endif()
-
 
 configure_file ("misc/growt_config.h.in" "${PROJECT_BINARY_DIR}/growt_config.h")
 include_directories(${PROJECT_BINARY_DIR})
@@ -332,6 +359,29 @@ if (GROWT_BUILD_TSX)
   endif()
 endif()
 
+if (GROWT_BUILD_LEGACY)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ins)
+  add_executable(ins_hopscotch tests/ins_test.cpp)
+  set_target_properties(ins_hopscotch PROPERTIES COMPILE_FLAGS "${FLAGS}")
+  target_compile_definitions(ins_hopscotch PRIVATE
+    -D HOPSCOTCH -D${GROWT_HASHFCT})
+  target_link_libraries(ins_hopscotch ${TEST_DEP_LIBRARIES})
+
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ins)
+  add_executable(ins_leahash tests/ins_test.cpp)
+  set_target_properties(ins_leahash PROPERTIES COMPILE_FLAGS "${FLAGS}")
+  target_compile_definitions(ins_leahash PRIVATE
+    -D LEAHASH -D${GROWT_HASHFCT})
+  target_link_libraries(ins_leahash ${TEST_DEP_LIBRARIES})
+
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ins)
+  add_executable(ins_shunhash tests/ins_test.cpp)
+  set_target_properties(ins_shunhash PROPERTIES COMPILE_FLAGS "${FLAGS}")
+  target_compile_definitions(ins_shunhash PRIVATE
+    -D SHUNHASH -D${GROWT_HASHFCT})
+  target_link_libraries(ins_shunhash ${TEST_DEP_LIBRARIES})
+endif()
+
 if (GROWT_BUILD_TBB)
   function( TBBExecutable variant cpp directory name )
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${directory})
@@ -355,8 +405,6 @@ endif()
 
 if (GROWT_BUILD_FOLLY)
 
-  message("message >>>>> ${CMAKE_CXX_FLAGS}")
-
   # set(TEMP_FLAGS "${CMAKE_CXX_FLAGS}")
   # set(CMAKE_CXX_FLAGS "${OLD_FLAGS}")
 
@@ -370,8 +418,6 @@ if (GROWT_BUILD_FOLLY)
       -D ${GROWT_HASHFCT})
     target_link_libraries( ${name} ${TEST_DEP_LIBRARIES} folly libglog.so )
   endfunction( FollyExecutable )
-
-  message("message >>>>> ${CMAKE_CXX_FLAGS}")
 
   FollyExecutable( FOLLY  ins_test ins ins_folly )
   FollyExecutable( FOLLY  mix_test mix mix_folly )

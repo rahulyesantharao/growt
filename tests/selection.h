@@ -231,33 +231,47 @@
 #ifdef TBBHM
 #include "wrapper/tbb_hm_wrapper.h"
 #define HASHTYPE TBBHMWrapper<HASHFCT>
-#endif //TBBHM
+#endif // TBBHM
 
 #ifdef TBBUM
 #include "wrapper/tbb_um_wrapper.h"
 #define HASHTYPE TBBUMWrapper<HASHFCT>
-#endif //TBBUM
+#endif // TBBUM
 
 #ifdef JUNCTION_LINEAR
 #define JUNCTION_TYPE junction::ConcurrentMap_Linear
 #include "wrapper/junction_wrapper.h"
 #define HASHTYPE JunctionWrapper
 //<junction::ConcurrentMap_Linear<turf::u64, turf::u64> >
-#endif //JUNCTION_LINEAR
+#endif // JUNCTION_LINEAR
 
 #ifdef JUNCTION_GRAMPA
 #define JUNCTION_TYPE junction::ConcurrentMap_Grampa
 #include "wrapper/junction_wrapper.h"
 #define HASHTYPE JunctionWrapper
 //<junction::ConcurrentMap_Linear<turf::u64, turf::u64> >
-#endif //JUNCTION_GRAMPA
+#endif // JUNCTION_GRAMPA
 
 #ifdef JUNCTION_LEAPFROG
 #define JUNCTION_TYPE junction::ConcurrentMap_Leapfrog
 #include "wrapper/junction_wrapper.h"
 #define HASHTYPE JunctionWrapper
 //<junction::ConcurrentMap_Linear<turf::u64, turf::u64> >
-#endif //JUNCTION_LEAPFROG
+#endif // JUNCTION_LEAPFROG
 
+#ifdef HOPSCOTCH
+#include "legacy_wrapper/hopscotch_wrapper.h"
+#define HASHTYPE HopscotchWrapper<HASHFCT>
+#endif // HOPSCOTCH
+
+#ifdef LEAHASH
+#include "legacy_wrapper/leahash_wrapper.h"
+#define HASHTYPE LeaHashWrapper<HASHFCT>
+#endif // LEAHASH
+
+#ifdef SHUNHASH
+#include "legacy_wrapper/shun_wrapper.h"
+#define HASHTYPE ShunWrapper<HASHFCT>
+#endif // SHUNHASH
 
 #endif // SELECTION
