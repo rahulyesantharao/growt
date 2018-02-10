@@ -74,7 +74,7 @@ set (OLD_FLAGS ${CMAKE_CXX_FLAGS})
 #   "${CMAKE_CXX_FLAGS} -std=c++1y -g -msse4.2 -mcx16 -Wall -Wextra -O3")
 
 set (FLAGS          "-std=c++1y -g -msse4.2 -mcx16 -Wall -Wextra -O3")
-set (FLAGS_NO_ERROR "-std=c++1y -g -msse4.2 -mcx16 -O3")
+set (FLAGS_NO_WARNING "-std=c++1y -g -msse4.2 -mcx16 -O3")
 
 include_directories(.)
 
@@ -224,11 +224,17 @@ if (GROWT_BUILD_LEGACY)
   endif()
 
   message(STATUS "Looking for Shun's Table")
-  find_path(SHUN_DIR      shun/ndHash/ndHash.h
+  find_path(SHUN_DIR      shun/deterministicHash.h
     PATHS ${CMAKE_CURRENT_SOURCE_DIR}/misc/submodules)
   if (SHUN_DIR)
     message(STATUS "Looking for Shun's Table -- found")
-    set(SHUN_INCLUDE ${SHUN_DIR}/shun/ndHash/)
+    set(SHUN_INCLUDE ${SHUN_DIR}/shun/)
+    include_directories(${SHUN_INCLUDE})
+  else()
+    message(STATUS "Looking for Shun's Table -- not found")
+    message("Cannot find Shun's Table. Therefore, some tests cannot be created! Download their code into the submodules/shun folder!")
+  endif()
+
     include_directories(${SHUN_INCLUDE})
   else()
     message(STATUS "Looking for Shun's Table -- not found")
@@ -362,21 +368,21 @@ endif()
 if (GROWT_BUILD_LEGACY)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ins)
   add_executable(ins_hopscotch tests/ins_test.cpp)
-  set_target_properties(ins_hopscotch PROPERTIES COMPILE_FLAGS "${FLAGS}")
+  set_target_properties(ins_hopscotch PROPERTIES COMPILE_FLAGS "${FLAGS_NO_WARNING}")
   target_compile_definitions(ins_hopscotch PRIVATE
     -D HOPSCOTCH -D${GROWT_HASHFCT})
   target_link_libraries(ins_hopscotch ${TEST_DEP_LIBRARIES})
 
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ins)
   add_executable(ins_leahash tests/ins_test.cpp)
-  set_target_properties(ins_leahash PROPERTIES COMPILE_FLAGS "${FLAGS}")
+  set_target_properties(ins_leahash PROPERTIES COMPILE_FLAGS "${FLAGS_NO_WARNING}")
   target_compile_definitions(ins_leahash PRIVATE
     -D LEAHASH -D${GROWT_HASHFCT})
   target_link_libraries(ins_leahash ${TEST_DEP_LIBRARIES})
 
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ins)
   add_executable(ins_shunhash tests/ins_test.cpp)
-  set_target_properties(ins_shunhash PROPERTIES COMPILE_FLAGS "${FLAGS}")
+  set_target_properties(ins_shunhash PROPERTIES COMPILE_FLAGS "${FLAGS_NO_WARNING}")
   target_compile_definitions(ins_shunhash PRIVATE
     -D SHUNHASH -D${GROWT_HASHFCT})
   target_link_libraries(ins_shunhash ${TEST_DEP_LIBRARIES})
@@ -448,7 +454,7 @@ if (GROWT_BUILD_JUNCTION)
   function( JunctionExecutable variant cpp directory name )
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${directory})
     add_executable(${name} tests/${cpp}.cpp)
-    set_target_properties(${name} PROPERTIES COMPILE_FLAGS "${FLAGS}")
+    set_target_properties(${name} PROPERTIES COMPILE_FLAGS "${FLAGS_NO_WARNING}")
     target_compile_definitions(${name} PRIVATE
       -D ${variant}
       -D ${GROWT_HASHFCT})
