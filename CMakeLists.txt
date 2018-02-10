@@ -235,10 +235,28 @@ if (GROWT_BUILD_LEGACY)
     message("Cannot find Shun's Table. Therefore, some tests cannot be created! Download their code into the submodules/shun folder!")
   endif()
 
-    include_directories(${SHUN_INCLUDE})
+   message(STATUS "Looking for Shun's nd Table")
+  find_path(SHUN_ND_DIR      shun_nd/ndHash.h
+    PATHS ${CMAKE_CURRENT_SOURCE_DIR}/misc/submodules)
+  if (SHUN_ND_DIR)
+    message(STATUS "Looking for Shun's nd Table -- found")
+    set(SHUN_ND_INCLUDE ${SHUN_ND_DIR}/shun_nd/)
+    include_directories(${SHUN_ND_INCLUDE})
   else()
-    message(STATUS "Looking for Shun's Table -- not found")
-    message("Cannot find Shun's Table. Therefore, some tests cannot be created! Download their code into the submodules/shun folder!")
+    message(STATUS "Looking for Shun's nd Table -- not found")
+    message("Cannot find Shun's Table. Therefore, some tests cannot be created! Download their code into the submodules/shun_nd folder!")
+  endif()
+
+  message(STATUS "Looking for urcu package")
+  find_path(URCU_DIR      userspace-rcu/blablablablablablablablabla
+    PATHS ${CMAKE_CURRENT_SOURCE_DIR}/misc/submodules)
+  if (URCU_DIR)
+    message(STATUS "Looking for urcu package -- found")
+    set(SHUN_INCLUDE ${URCU_DIR}/userspace-rcu/)
+    include_directories(${URCU_INCLUDE})
+  else()
+    message(STATUS "Looking for urcu package -- not found")
+    message("Cannot find userspace rcu implementation. Therefore, some tests cannot be created! Download compile and install their code into the submodules/userspace-rcu folder!")
   endif()
 endif()
 
@@ -276,14 +294,6 @@ function( GrowTExecutable variant cpp directory name )
     -D GROWT_USE_CONFIG)
   target_link_libraries(${name} ${TEST_DEP_LIBRARIES} ${ALLOC_LIB})
 endfunction( GrowTExecutable )
-
-# if (GROWT_BUILD_FOLLY)
-#   add_executable(${t}_folly tests/${t}_test.cpp)
-#   target_compile_definitions(${t}_folly  PRIVATE -D FOLLY  -D ${GROWT_HASHFCT})
-#   #message(SYSTEM ${FOLLY_LIBRARIES})
-#   target_link_libraries(${t}_folly ${TEST_DEP_LIBRARIES} ${FOLLY_LIBRARIES} libglog.so)
-# endif()
-
 
 
 GrowTExecutable( FOLKLORE ins_test ins ins_folklore )
@@ -386,6 +396,13 @@ if (GROWT_BUILD_LEGACY)
   target_compile_definitions(ins_shunhash PRIVATE
     -D SHUNHASH -D${GROWT_HASHFCT})
   target_link_libraries(ins_shunhash ${TEST_DEP_LIBRARIES})
+
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ins)
+  add_executable(ins_shunhash_nd tests/ins_test.cpp)
+  set_target_properties(ins_shunhash_nd PROPERTIES COMPILE_FLAGS "${FLAGS_NO_WARNING}")
+  target_compile_definitions(ins_shunhash_nd PRIVATE
+    -D SHUNHASH -D${GROWT_HASHFCT} -DSHUN_ND)
+  target_link_libraries(ins_shunhash_nd ${TEST_DEP_LIBRARIES})
 endif()
 
 if (GROWT_BUILD_TBB)
@@ -410,10 +427,6 @@ if (GROWT_BUILD_TBB)
 endif()
 
 if (GROWT_BUILD_FOLLY)
-
-  # set(TEMP_FLAGS "${CMAKE_CXX_FLAGS}")
-  # set(CMAKE_CXX_FLAGS "${OLD_FLAGS}")
-
   function( FollyExecutable variant cpp directory name )
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${directory})
 
@@ -429,8 +442,6 @@ if (GROWT_BUILD_FOLLY)
   FollyExecutable( FOLLY  mix_test mix mix_folly )
   FollyExecutable( FOLLY  con_test con con_folly )
   FollyExecutable( FOLLY  agg_test agg agg_folly )
-
-  # set(CMAKE_CXX_FLAGS "${TEMP_FLAGS}")
 endif()
 
 if (GROWT_BUILD_CUCKOO)
