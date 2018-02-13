@@ -68,13 +68,13 @@ endif()
 set (GROWT_MAX_FILL 0.6)
 
 
-set (OLD_FLAGS ${CMAKE_CXX_FLAGS})
+set (CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -std=c++1y -g -O2")
 
 # set (CMAKE_CXX_FLAGS
 #   "${CMAKE_CXX_FLAGS} -std=c++1y -g -msse4.2 -mcx16 -Wall -Wextra -O3")
 
-set (FLAGS          "-std=c++1y -g -msse4.2 -mcx16 -Wall -Wextra -O3")
-set (FLAGS_NO_WARNING "-std=c++1y -g -msse4.2 -mcx16 -O3")
+set (FLAGS            "-msse4.2 -mcx16 -Wall -Wextra -O3")
+set (FLAGS_NO_WARNING "-msse4.2 -mcx16 -O3")
 
 include_directories(.)
 
@@ -248,12 +248,18 @@ if (GROWT_BUILD_LEGACY)
   endif()
 
   message(STATUS "Looking for urcu package")
-  find_path(URCU_DIR      userspace-rcu/blablablablablablablablabla
+  find_path(URCU_DIR      userspace-rcu/install/include/urcu/rculfhash.h
     PATHS ${CMAKE_CURRENT_SOURCE_DIR}/misc/submodules)
   if (URCU_DIR)
     message(STATUS "Looking for urcu package -- found")
-    set(SHUN_INCLUDE ${URCU_DIR}/userspace-rcu/)
+    set(URCU_INCLUDE ${URCU_DIR}/userspace-rcu/install/include/)
     include_directories(${URCU_INCLUDE})
+    set(URCU_LIBRARIES -lurcu -lurcu-cds
+      -L${URCU_DIR}/userspace-rcu/install/lib/
+      -Wl,-rpath,${URCU_DIR}/userspace-rcu/install/lib)
+    set(URCU_QSBR_LIBRARIES -lurcu-qsbr -lurcu-cds
+      -L${URCU_DIR}/userspace-rcu/install/lib/
+      -Wl,-rpath,${URCU_DIR}/userspace-rcu/install/lib)
   else()
     message(STATUS "Looking for urcu package -- not found")
     message("Cannot find userspace rcu implementation. Therefore, some tests cannot be created! Download compile and install their code into the submodules/userspace-rcu folder!")
@@ -401,8 +407,22 @@ if (GROWT_BUILD_LEGACY)
   add_executable(ins_shunhash_nd tests/ins_test.cpp)
   set_target_properties(ins_shunhash_nd PROPERTIES COMPILE_FLAGS "${FLAGS_NO_WARNING}")
   target_compile_definitions(ins_shunhash_nd PRIVATE
-    -D SHUNHASH -D${GROWT_HASHFCT} -DSHUN_ND)
+    -D SHUNHASH -D${GROWT_HASHFCT} -D SHUN_ND)
   target_link_libraries(ins_shunhash_nd ${TEST_DEP_LIBRARIES})
+
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ins)
+  add_executable(ins_rcu_base tests/ins_test.cpp)
+  set_target_properties(ins_rcu_base PROPERTIES COMPILE_FLAGS "${FLAGS_NO_WARNING}")
+  target_compile_definitions(ins_rcu_base PRIVATE
+    -D RCU_BASE -D${GROWT_HASHFCT})
+  target_link_libraries(ins_rcu_base ${TEST_DEP_LIBRARIES} ${URCU_LIBRARIES})
+
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ins)
+  add_executable(ins_rcu_qsbr tests/ins_test.cpp)
+  set_target_properties(ins_rcu_qsbr PROPERTIES COMPILE_FLAGS "${FLAGS_NO_WARNING}")
+  target_compile_definitions(ins_rcu_qsbr PRIVATE
+    -D RCU_BASE -D${GROWT_HASHFCT} -D QSBR)
+  target_link_libraries(ins_rcu_qsbr ${TEST_DEP_LIBRARIES} ${URCU_QSBR_LIBRARIES})
 endif()
 
 if (GROWT_BUILD_TBB)
@@ -416,14 +436,14 @@ if (GROWT_BUILD_TBB)
     target_link_libraries( ${name} ${TEST_DEP_LIBRARIES} ${TBB_LIBRARIES} )
   endfunction( TBBExecutable )
 
-  TBBExecutable( TBBHM  ins_test ins ins_TBBhm )
-  TBBExecutable( TBBUM  ins_test ins ins_TBBum )
-  TBBExecutable( TBBHM  mix_test mix mix_TBBhm )
-  TBBExecutable( TBBUM  mix_test mix mix_TBBum )
-  TBBExecutable( TBBHM  con_test con con_TBBhm )
-  TBBExecutable( TBBUM  con_test con con_TBBum )
-  TBBExecutable( TBBHM  agg_test agg agg_TBBhm )
-  TBBExecutable( TBBUM  agg_test agg agg_TBBum )
+  TBBExecutable( TBBHM  ins_test ins ins_TBB_hm )
+  TBBExecutable( TBBUM  ins_test ins ins_TBB_um )
+  TBBExecutable( TBBHM  mix_test mix mix_TBB_hm )
+  TBBExecutable( TBBUM  mix_test mix mix_TBB_um )
+  TBBExecutable( TBBHM  con_test con con_TBB_hm )
+  TBBExecutable( TBBUM  con_test con con_TBB_um )
+  TBBExecutable( TBBHM  agg_test agg agg_TBB_hm )
+  TBBExecutable( TBBUM  agg_test agg agg_TBB_um )
 endif()
 
 if (GROWT_BUILD_FOLLY)
@@ -485,23 +505,3 @@ if (GROWT_BUILD_JUNCTION)
   JunctionExecutable( JUNCTION_LEAP    con_test con con_junction_leap   )
   JunctionExecutable( JUNCTION_LEAP    agg_test agg agg_junction_leap   )
 endif()
-
-
-
-# # build additional tables when tsx is enabled
-# if (GROWT_BUILD_TSX)
-#   set (HASHLIST "${HASHLIST};xfolklore;uaxGrow;usxGrow;paxGrow;psxGrow")
-#   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mrtm")
-#   if (GROWT_BUILD_ALTERNATE_VARIANT)
-#     set(HASHLIST "${HASHLIST};usnxGrow;psnxGrow")
-#   endif()
-# endif()
-
-# if (GROWT_HASHFCT STREQUAL MURMUR3)
-#   find_package(smhasher)
-#   if (SMHASHER_FOUND)
-#     include_directories(${SMHASHER_INCLUDE_DIRS})
-#   else()
-#     message("Cannot find SMHasher which implements MURMUR3. Use MURMUR2 instead.")
-#   endif()
-# endif()
