@@ -263,7 +263,7 @@
 
 #ifdef ROBINHOOD 
 #include "wrapper/robinhood_wrapper.h"
-#define HASHTYPE RobinhoodWrapper<HASHFCT>
+#define HASHTYPE RobinhoodWrapper
 #endif // ROBINHOOD 
 
 #endif // SELECTION

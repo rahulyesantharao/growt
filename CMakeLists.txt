@@ -222,7 +222,7 @@ if (GROWT_BUILD_ROBINHOOD)
     PATHS ${CMAKE_CURRENT_SOURCE_DIR}/misc/submodules)
 
   if(ROBINHOOD_DIR)
-    add_subdirectory(${ROBINHOOD_DIR} robinhood)
+    add_subdirectory(${ROBINHOOD_DIR} hashtable)
     include_directories(${ROBINHOOD_DIR}/include)
     message(STATUS "Looking for robin hood -- found")
   else()
