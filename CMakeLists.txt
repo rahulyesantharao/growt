@@ -40,6 +40,8 @@ option(GROWT_BUILD_TBB
   "(optional) builds tests for tbb hash map and unordered map (using wrappers)!" OFF)
 option(GROWT_BUILD_JUNCTION
   "(optional) builds tests for junction tables (Linear, Grampa, Leapfrog)!" OFF)
+option(GROWT_BUILD_ROBINHOOD
+  "(optional) builds tests for robin hood hashtable!" OFF)
 
 set(GROWT_ALLOCATOR ALIGNED CACHE STRING
   "Specifies the used allocator (only relevant for our tables)!")
@@ -60,6 +62,7 @@ if (GROWT_BUILD_ALL_THIRD_PARTIES)
   set(GROWT_BUILD_CUCKOO   ON)
   set(GROWT_BUILD_TBB      ON)
   set(GROWT_BUILD_JUNCTION ON)
+  set(GROWT_BUILD_ROBINHOOD ON)
 endif()
 
 ###TEMPORARY (CURRENTLY NOT USED)
@@ -211,6 +214,24 @@ if (GROWT_BUILD_FOLLY)
   endif()
 endif()
 
+
+if (GROWT_BUILD_ROBINHOOD)
+  message(STATUS "Looking for robin hood hashtable")
+
+  find_path(ROBINHOOD_DIR hashtable/CMakeLists.txt
+    PATHS ${CMAKE_CURRENT_SOURCE_DIR}/misc/submodules)
+
+  if(ROBINHOOD_DIR)
+    add_subdirectory(${ROBINHOOD_DIR} robinhood)
+    include_directories(${ROBINHOOD_DIR}/include)
+    message(STATUS "Looking for robin hood -- found")
+  else()
+    message(STATUS "Looking for robin hood -- not found")
+    message("Cannot find robin hood root directory. "
+      "Therefore, RobinHood-Tests cannot be created!")
+    set(GROWT_BUILD_ROBINHOOD OFF)
+  endif()
+endif()
 
 if (GROWT_HASHFCT STREQUAL XXHASH)
   message(STATUS "Looking for xxhash")
@@ -435,7 +456,23 @@ if (GROWT_BUILD_JUNCTION)
   JunctionExecutable( JUNCTION_LEAPFROG    del_test del del_full_junction_leap )
 endif()
 
+if (GROWT_BUILD_ROBINHOOD)
+  function( RobinhoodExecutable variant cpp directory name )
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${directory})
+    add_executable(${name} tests/${cpp}.cpp)
+    set_target_properties(${name} PROPERTIES COMPILE_FLAGS "${FLAGS}")
+    target_compile_definitions(${name} PRIVATE
+      -D ${variant}
+      -D ${GROWT_HASHFCT})
+    target_link_libraries( ${name} ${TEST_DEP_LIBRARIES} ${ROBINHOOD_LIBRARIES} )
+  endfunction( RobinhoodExecutable )
 
+  RobinhoodExecutable( ROBINHOOD  ins_test ins ins_full_cuckoo )
+  RobinhoodExecutable( ROBINHOOD  mix_test mix mix_full_cuckoo )
+  RobinhoodExecutable( ROBINHOOD  con_test con con_full_cuckoo )
+  RobinhoodExecutable( ROBINHOOD  agg_test agg agg_full_cuckoo )
+  RobinhoodExecutable( ROBINHOOD  del_test del del_full_cuckoo )
+endif()
 
 # # build additional tables when tsx is enabled
 # if (GROWT_BUILD_TSX)

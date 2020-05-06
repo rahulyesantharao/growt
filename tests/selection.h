@@ -261,5 +261,9 @@
 //<junction::ConcurrentMap_Linear<turf::u64, turf::u64> >
 #endif //JUNCTION_LEAPFROG
 
+#ifdef ROBINHOOD 
+#include "wrapper/robinhood_wrapper.h"
+#define HASHTYPE RobinhoodWrapper<HASHFCT>
+#endif // ROBINHOOD 
 
 #endif // SELECTION
