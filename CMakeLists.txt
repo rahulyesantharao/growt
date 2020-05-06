@@ -471,11 +471,11 @@ if (GROWT_BUILD_ROBINHOOD)
     target_link_libraries( ${name} ${TEST_DEP_LIBRARIES} ${ROBINHOOD_LIBRARIES} )
   endfunction( RobinhoodExecutable )
 
-  RobinhoodExecutable( ROBINHOOD  ins_test ins ins_full_cuckoo )
-  RobinhoodExecutable( ROBINHOOD  mix_test mix mix_full_cuckoo )
-  RobinhoodExecutable( ROBINHOOD  con_test con con_full_cuckoo )
-  RobinhoodExecutable( ROBINHOOD  agg_test agg agg_full_cuckoo )
-  RobinhoodExecutable( ROBINHOOD  del_test del del_full_cuckoo )
+  RobinhoodExecutable( ROBINHOOD  ins_test ins ins_full_robinhood )
+  RobinhoodExecutable( ROBINHOOD  mix_test mix mix_full_robinhood )
+  RobinhoodExecutable( ROBINHOOD  con_test con con_full_robinhood )
+  RobinhoodExecutable( ROBINHOOD  agg_test agg agg_full_robinhood )
+  RobinhoodExecutable( ROBINHOOD  del_test del del_full_robinhood )
 endif()
 
 # # build additional tables when tsx is enabled
