@@ -1,16 +1,15 @@
 #ifndef ROBINHOOD_WRAPPER
 #define ROBINHOOD_WRAPPER
 
-#include "hashtable/hashtable.hpp"
-#include "data-structures/returnelement.h"
-#include <algorithm>
+#include "hashtable.hpp"
+#include "wrapper/stupid_iterator.h"
 
 class RobinhoodWrapper
 {
 private:
     using HashType = Hashtable;
 
-    Hashtype hash;
+    HashType hash;
     size_t capacity;
 
 public:
@@ -57,6 +56,8 @@ public:
     template<class F, class ... Types>
     inline insert_return_type update(const key_type& k, F f, Types&& ... args)
     {
+        //if (! F::junction_compatible::value) return insert_return_type(end(), false);
+
         // extract the update value
         auto update_value = mapped_type();
         f(update_value, std::forward<Types>(args)...);
@@ -67,19 +68,22 @@ public:
     }
 
     template<class F, class ... Types>
-    inline insert_return_type insert_or_update(const key_type& k, const mapped_type& d, F f, Types&& ... args)
+    inline insert_return_type insert_or_update(const key_type& k, const mapped_type& d, __attribute__((unused)) F f, __attribute__((unused)) Types&& ... args)
     {
+        //if (! F::junction_compatible::value) return insert_return_type(end(), false);
+
         // extract the update value
         auto update_value = mapped_type();
-        f(update_value, std::forward<Types>(args)...);
+        {
+          //f(update_value, std::forward<Types>(args)...);
+        }
 
         // insert or update
         bool inserted = hash.InsertOrUpdate(k, d, update_value);
-        auto ret = hash.insert(std::make_pair(k,d));
 
         // construct the return value
         if(inserted) return {iterator(k, d), true}; // inserted
-        else return {iterator(k, temp), false}; // updated
+        else return {iterator(k, update_value), false}; // updated
     }
 
     template<class F, class ... Types>
@@ -100,5 +104,5 @@ public:
     }
 
     inline iterator end() { return iterator(); }
-}
+};
 #endif // ROBINHOOD_WRAPPER
