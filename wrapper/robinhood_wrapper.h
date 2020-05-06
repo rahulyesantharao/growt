@@ -13,8 +13,8 @@ private:
     size_t capacity;
 
 public:
-    using key_type           = keytype;
-    using mapped_type        = valtype;
+    using key_type           = size_t;
+    using mapped_type        = size_t;
     using value_type         = typename std::pair<const key_type, mapped_type>;
     using iterator           = StupidIterator<key_type, mapped_type>;
     using insert_return_type = std::pair<iterator, bool>;
@@ -74,9 +74,7 @@ public:
 
         // extract the update value
         auto update_value = mapped_type();
-        {
-          //f(update_value, std::forward<Types>(args)...);
-        }
+        f(update_value, std::forward<Types>(args)...);
 
         // insert or update
         bool inserted = hash.InsertOrUpdate(k, d, update_value);
