@@ -1,7 +1,7 @@
 #ifndef ROBINHOOD_WRAPPER
 #define ROBINHOOD_WRAPPER
 
-#include "hashtable.hpp"
+#include "hashtable/hashtable.hpp"
 #include "wrapper/stupid_iterator.h"
 
 class RobinhoodWrapper
