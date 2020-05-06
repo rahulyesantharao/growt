@@ -249,3 +249,10 @@ make
 note that folly needs quite a lot of extern libraries (zstd, glog,
 ...) those have to be installed, to compile any test using folly
 (checkout their github https://github.com/facebook/folly).
+
+
+# ROBINHOOD NOTES
+To update the Robinhood repo:
+```
+git submodule update --remote misc/submodules/hashtable/
+```
