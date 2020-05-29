@@ -239,6 +239,24 @@ if (GROWT_BUILD_ROBINHOOD)
   endif()
 endif()
 
+if (GROWT_BUILD_SKA)
+  message(STATUS "Looking for ska hashtable")
+
+  find_path(SKA_DIR ska/flat_hash_map.hpp
+    PATHS ${CMAKE_CURRENT_SOURCE_DIR}/misc/submodules)
+
+  if(SKA_DIR)
+    message(STATUS "Found ska: ${SKA_DIR}")
+    include_directories(${SKA_DIR}/ska)
+    message(STATUS "Looking for ska -- found")
+  else()
+    message(STATUS "Looking for ska -- not found")
+    message("Cannot find ska root directory. "
+	    "Therefore, Ska-Tests cannot be created!")
+    set(GROWT_BUILD_SKA OFF)
+  endif()
+endif()
+
 if (GROWT_HASHFCT STREQUAL XXHASH)
   message(STATUS "Looking for xxhash")
 

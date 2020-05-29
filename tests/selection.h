@@ -266,4 +266,9 @@
 #define HASHTYPE RobinhoodWrapper
 #endif // ROBINHOOD 
 
+#ifdef SKA
+#include "wrapper/ska_wrapper.h"
+#define HASHTYPE SkaWrapper
+#endif // SKA
+
 #endif // SELECTION

@@ -1,13 +1,13 @@
 #ifndef SKA_WRAPPER
 #define SKA_WRAPPER
 
-#include "../data_structures/flat_hash_map.hpp"
+#include "flat_hash_map.hpp"
 #include "wrapper/stupid_iterator.h"
 
 class SkaWrapper
 {
 private:
-    using HashType = flat_hash_map;
+    using HashType = ska::flat_hash_map<size_t, size_t>;
 
     HashType hash;
     size_t capacity;
@@ -40,8 +40,9 @@ public:
     inline iterator find(const key_type& k)
     {
       bool found;
-      valtype v = hash.Get(k, found);
-      if(found) {
+      auto vit = hash.find(k);
+      if(vit != hash.end()) {
+	auto v = vit->second;
         return iterator(k, v);
       } else {
         return end();
@@ -49,7 +50,7 @@ public:
     }
 
     inline insert_return_type insert(const key_type &k, const mapped_type &d) {
-      bool inserted = hash.Insert(k, d);
+      bool inserted = hash.insert(k, d);
       return {{inserted ? k : 0, d}, inserted};
     }
 
@@ -63,7 +64,7 @@ public:
         f(update_value, std::forward<Types>(args)...);
 
         // update only
-        bool updated = hash.Update(k, update_value);
+        bool updated = hash.update(k, update_value);
         return {{updated ? k : 0, update_value}, updated};
     }
 
@@ -77,7 +78,7 @@ public:
         f(update_value, std::forward<Types>(args)...);
 
         // insert or update
-        auto inserted = hash.insert_or_update(k, d, update_value);
+        auto inserted = hash.insert_or_update(k, d, const_cast<const decltype(update_value)&>(update_value));
 
         // construct the return value
         if(inserted) return {iterator(k, d), true}; // inserted
@@ -87,13 +88,13 @@ public:
     template<class F, class ... Types>
     inline insert_return_type update_unsafe(const key_type& k, F f, Types&& ... args)
     {
-        return hash.update(k,f,std::forward<Types>(args)...);
+        return update(k,f,std::forward<Types>(args)...);
     }
 
     template<class F, class ... Types>
     inline insert_return_type insert_or_update_unsafe(const key_type& k, const mapped_type& d, F f, Types&& ... args)
     {
-        return hash.insert_or_update(k,d,f,std::forward<Types>(args)...);
+        return insert_or_update(k,d,f,std::forward<Types>(args)...);
     }
 
     inline size_t erase(const key_type& k)

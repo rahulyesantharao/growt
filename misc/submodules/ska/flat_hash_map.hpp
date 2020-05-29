@@ -1379,16 +1379,18 @@ public:
     {
         auto emplace_result = emplace(key, std::forward<M>(m));
         if (!emplace_result.second)
-            return false
+            return false;
         return emplace_result.second;
     }
     template<typename M>
     bool update(const key_type & key, M && m)
     {
+	/*
         auto emplace_result = emplace(key, std::forward<M>(m));
         if (!emplace_result.second)
             emplace_result.first->second = std::forward<M>(m);
-        return !emplace_result.second;
+	*/
+        return false; //TODO 
     }
 
     template<typename M>
