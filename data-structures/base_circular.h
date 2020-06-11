@@ -17,6 +17,7 @@
 #include <functional>
 #include <atomic>
 #include <stdexcept>
+#include <iostream>
 
 #include "utils/default_hash.hpp"
 #include "data-structures/returnelement.h"
@@ -62,6 +63,7 @@ private:
     using insert_return_intern = std::pair<iterator, ReturnCode>;
 
 public:
+    std::vector<int> distances;
     BaseCircular(size_type size_ = 1<<18);
     BaseCircular(size_type size_, size_type version_);
 
@@ -76,7 +78,7 @@ public:
     ~BaseCircular();
 
     Handle get_handle() { return *this; }
-
+    
     iterator       begin();
     iterator       end();
     const_iterator cbegin() const;
@@ -210,6 +212,29 @@ private:
         return 64 - log_size;                    // HashFct::significant_digits
     }
 
+    void Summary() {
+  int sum = 0;
+  for (int d: distances) {
+    if (d != -1) {
+      sum += d;
+    }
+  }
+  double avg = ((double)sum)/distances.size();
+  double var = 0;
+  for (int d : distances) {
+    var += (d-avg)*(d-avg);
+  }
+  if (distances.size() == 0) return;
+  var /= distances.size();
+  std::sort(distances.begin(), distances.end());
+  std::cout << "\nFor " << distances.size() << " elements..." << std::endl;
+  std::cout << "MIN: " << distances[0] << std::endl;
+  std::cout << "MEDIAN: " << distances[distances.size()/2] << std::endl;
+  std::cout << "AVG: " << avg << std::endl;
+  std::cout << "MAX: " << distances[distances.size()-1] << std::endl;
+  std::cout << "VAR: " << var << std::endl;
+}
+
 public:
     using range_iterator = iterator;
     using const_range_iterator = const_iterator;
@@ -265,7 +290,9 @@ BaseCircular<E,HashFct,A>::BaseCircular(size_type capacity_, size_type version_)
 template<class E, class HashFct, class A>
 BaseCircular<E,HashFct,A>::~BaseCircular()
 {
-    if (_t) _allocator.deallocate(_t, _capacity);
+  Summary();  
+  distances.clear();
+  if (_t) _allocator.deallocate(_t, _capacity);
 }
 
 
@@ -411,9 +438,12 @@ BaseCircular<E,HashFct,A>::insert_intern(const key_type& k,
                                    ReturnCode::UNSUCCESS_ALREADY_USED);
         else if (curr.is_empty())
         {
-            if ( _t[temp].cas(curr, value_intern(k,d)) )
+            if ( _t[temp].cas(curr, value_intern(k,d)) ){
+		//std::cout << k << " ---- " << (int)(i-htemp) << std::endl;
+		distances.push_back((int)(i-htemp));
                 return make_insert_ret(k,d, &_t[temp],
                                        ReturnCode::SUCCESS_IN);
+	    }
 
             //somebody changed the current element! recheck it
             --i;

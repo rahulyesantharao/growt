@@ -42,6 +42,8 @@ option(GROWT_BUILD_JUNCTION
   "(optional) builds tests for junction tables (Linear, Grampa, Leapfrog)!" OFF)
 option(GROWT_BUILD_ROBINHOOD
   "(optional) builds tests for robin hood hashtable!" OFF)
+option(GROWT_BUILD_SKA
+  "(optional) builds tests for SKA hashtable!" OFF)
 
 set(GROWT_ALLOCATOR ALIGNED CACHE STRING
   "Specifies the used allocator (only relevant for our tables)!")
@@ -63,6 +65,7 @@ if (GROWT_BUILD_ALL_THIRD_PARTIES)
   set(GROWT_BUILD_TBB      ON)
   set(GROWT_BUILD_JUNCTION ON)
   set(GROWT_BUILD_ROBINHOOD ON)
+  set(GROWT_BUILD_SKA ON)
 endif()
 
 ###TEMPORARY (CURRENTLY NOT USED)
@@ -233,6 +236,24 @@ if (GROWT_BUILD_ROBINHOOD)
     message("Cannot find robin hood root directory. "
       "Therefore, RobinHood-Tests cannot be created!")
     set(GROWT_BUILD_ROBINHOOD OFF)
+  endif()
+endif()
+
+if (GROWT_BUILD_SKA)
+  message(STATUS "Looking for ska hashtable")
+
+  find_path(SKA_DIR ska/flat_hash_map.hpp
+    PATHS ${CMAKE_CURRENT_SOURCE_DIR}/misc/submodules)
+
+  if(SKA_DIR)
+    message(STATUS "Found ska: ${SKA_DIR}")
+    include_directories(${SKA_DIR}/ska)
+    message(STATUS "Looking for ska -- found")
+  else()
+    message(STATUS "Looking for ska -- not found")
+    message("Cannot find ska root directory. "
+	    "Therefore, Ska-Tests cannot be created!")
+    set(GROWT_BUILD_SKA OFF)
   endif()
 endif()
 
@@ -476,6 +497,24 @@ if (GROWT_BUILD_ROBINHOOD)
   RobinhoodExecutable( ROBINHOOD  con_test con con_full_robinhood )
   RobinhoodExecutable( ROBINHOOD  agg_test agg agg_full_robinhood )
   RobinhoodExecutable( ROBINHOOD  del_test del del_full_robinhood )
+endif()
+
+if (GROWT_BUILD_SKA)
+	function( SkaExecutable variant cpp directory name )
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${directory})
+    add_executable(${name} tests/${cpp}.cpp)
+    set_target_properties(${name} PROPERTIES COMPILE_FLAGS "${FLAGS}")
+    target_compile_definitions(${name} PRIVATE
+      -D ${variant}
+      -D ${GROWT_HASHFCT})
+    target_link_libraries( ${name} ${TEST_DEP_LIBRARIES} ${SKA_LIBRARIES} )
+  endfunction( SkaExecutable )
+
+  SkaExecutable( SKA  ins_test ins ins_full_ska )
+  SkaExecutable( SKA  mix_test mix mix_full_ska )
+  SkaExecutable( SKA  con_test con con_full_ska )
+  SkaExecutable( SKA  agg_test agg agg_full_ska )
+  SkaExecutable( SKA  del_test del del_full_ska )
 endif()
 
 # # build additional tables when tsx is enabled
