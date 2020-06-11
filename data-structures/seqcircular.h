@@ -116,6 +116,10 @@ private:
     using This_t             = SeqCircular<E,HashFct,A>;
     using Base_t             = BaseCircular   <E,HashFct,A>;
 
+
+    std::vector<int> distances_sucessful;
+    std::vector<int> distances_unsucessful;
+
 public:
     using value_intern       = E;
 
@@ -145,7 +149,7 @@ private:
     using BaseCircular<E,HashFct,A>::_hash;
     using BaseCircular<E,HashFct,A>::_version;
     using BaseCircular<E,HashFct,A>::_right_shift;
-    static constexpr double _max_fill_factor = 0.666;
+    static constexpr double _max_fill_factor = 1; //0.666;
 
     template<class, bool>
     friend class SeqIterator;
@@ -154,11 +158,32 @@ public:
 
     SeqCircular(size_t size )
         : BaseCircular<E,HashFct,A>::BaseCircular(size),
-          _n_elem(0), _thresh(_capacity*_max_fill_factor) {}
+          _n_elem(0), _thresh(_capacity*_max_fill_factor) {
+              distances_unsucessful.reserve(size);
+              distances_sucessful.reserve(size);
+          }
 
     SeqCircular(size_t size, size_t version)
         : BaseCircular<E,HashFct,A>::BaseCircular(size, version),
           _n_elem(0), _thresh(_capacity*_max_fill_factor) {}
+
+
+    void compute_stats(std::vector <int>& distances){
+
+    if (distances.size() == 0) return;
+    std::sort(distances.begin(), distances.end());
+
+    size_t sum = 0; 
+    for(int i = 0; i < distances.size(); i++){
+        sum += distances[i]; 
+    }
+    std::cout << "\nFor " << distances.size() << " elements..." << std::endl;
+    std::cout << "MIN: " << distances[0] << std::endl;
+    std::cout << "MEDIAN: " << distances[distances.size()/2] << std::endl;
+    std::cout << "AVG: " << ((double)sum)/distances.size() << std::endl;
+    std::cout << "MAX: " << distances[distances.size()-1] << std::endl;
+    }   
+
 
     // These are used for our tests, such that SeqCircular behaves like GrowTable
     using Handle = SeqCircular<E,HashFct,A>&;
@@ -293,11 +318,32 @@ inline typename SeqCircular<E,HF,A>::iterator
 SeqCircular<E,HF,A>::find(const key_type & k)
 {
     size_t htemp = h(k);
+
+    static int counter = 0;
+
+
+
+
+    counter++;
+
+    if(counter%10000 == 0) {
+        std::cout << "sucessful search " << std::endl;
+        compute_stats(distances_sucessful);
+        std::cout << "unsucessful search" << std::endl;
+        compute_stats(distances_unsucessful);
+    }
+
     for (size_t i = htemp;;++i)  // i < htemp+MaDis
     {
         E curr(_t[i & _bitmask]);
-        if (curr.compare_key(k)) return make_it(&_t[i&_bitmask], k);
-        else if (curr.is_empty()) return end();
+        if (curr.compare_key(k)) {
+            distances_sucessful.push_back(i - htemp);
+            return make_it(&_t[i&_bitmask], k);
+        }
+        else if (curr.is_empty()){
+            distances_unsucessful.push_back(i - htemp);
+            return end();
+        }
     }
 }
 
@@ -306,11 +352,18 @@ inline typename SeqCircular<E,HF,A>::const_iterator
 SeqCircular<E,HF,A>::find(const key_type & k) const
 {
     size_t htemp = h(k);
+
+
+    
     for (size_t i = htemp;;++i)
     {
         E curr(_t[i & _bitmask]);
-        if (curr.compare_key(k)) return make_cit(&_t[i&_bitmask], k);
-        else if (curr.is_empty()) return cend();
+        if (curr.compare_key(k)){
+           return make_cit(&_t[i&_bitmask], k);
+        }
+        else if (curr.is_empty()){
+            return cend();
+        } 
     }
 }
 
@@ -339,12 +392,17 @@ SeqCircular<E,HF,A>::insert(const key_type& k, const mapped_type& d)
     // return insert(e);
 }
 
+
+
+
 template<class E, class HF, class A>
 template<class F, class ...Types>
 inline typename SeqCircular<E,HF,A>::insert_return_type
 SeqCircular<E,HF,A>::update(const key_type& k, F f, Types&& ... args)
 {
     size_t htemp = h(k);
+
+    
     for (size_t i = htemp;;++i)
     {
         const size_t temp = i & _bitmask;

@@ -22,6 +22,7 @@
 #include "data-structures/returnelement.h"
 #include "data-structures/base_iterator.h"
 #include "example/update_fcts.h"
+#include <iostream> 
 
 namespace growt {
 
@@ -242,6 +243,7 @@ BaseCircular<E,HashFct,A>::BaseCircular(size_type capacity_)
 
 {
     _t = _allocator.allocate(_capacity);
+    std::cout << "capacity of table " << capacity_ << std::endl;
     if ( !_t ) std::bad_alloc();
 
     std::fill( _t ,_t + _capacity , value_intern::get_empty() );
@@ -580,7 +582,7 @@ BaseCircular<E,HashFct,A>::insert_or_update_unsafe_intern(const key_type& k,
         else if (curr.is_empty())
         {
             if ( _t[temp].cas(curr, value_intern(k,d)) )
-                return make_insert_ret(k,d, &_t[temp],
+                return make_insert_retC(k,d, &_t[temp],
                                        ReturnCode::SUCCESS_IN);
             //somebody changed the current element! recheck it
             --i;
@@ -669,6 +671,9 @@ inline typename BaseCircular<E,HashFct,A>::iterator
 BaseCircular<E,HashFct,A>::find(const key_type& k)
 {
     size_type htemp = h(k);
+
+//    std::cout << "key" << k << " hash " << _hash(k) << std::endl; 
+  //  std::cout << "size of values" << sizeof(value_intern) << std::endl;  
     for (size_type i = htemp; ; ++i)
     {
         value_intern curr(_t[i & _bitmask]);
