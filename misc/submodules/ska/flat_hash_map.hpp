@@ -12,6 +12,7 @@
 #include <iterator>
 #include <utility>
 #include <type_traits>
+#include <iostream>
 
 #ifdef _MSC_VER
 #define SKA_NOINLINE(...) __declspec(noinline) __VA_ARGS__
@@ -268,7 +269,7 @@ template<typename...> using void_t = void;
 template<typename T, typename = void>
 struct HashPolicySelector
 {
-    typedef fibonacci_hash_policy type;
+    typedef power_of_two_hash_policy type;
 };
 template<typename T>
 struct HashPolicySelector<T, void_t<typename T::hash_policy>>
@@ -300,9 +301,18 @@ public:
     sherwood_v3_table()
     {
     }
+
+    static size_t compute_capacity(size_t desired_capacity)
+    {
+        auto temp = 16384u;
+        while (temp < desired_capacity) temp <<= 1;
+        return (temp << 1);
+    }
+
     explicit sherwood_v3_table(size_type bucket_count, const ArgumentHash & hash = ArgumentHash(), const ArgumentEqual & equal = ArgumentEqual(), const ArgumentAlloc & alloc = ArgumentAlloc())
         : EntryAlloc(alloc), Hasher(hash), Equal(equal)
     {
+        bucket_count = compute_capacity(bucket_count);
         rehash(bucket_count);
     }
     sherwood_v3_table(size_type bucket_count, const ArgumentAlloc & alloc)
@@ -538,6 +548,9 @@ public:
 
     iterator find(const FindKey & key)
     {
+      static int counter = 0;
+      counter++;
+
         size_t index = hash_policy.index_for_hash(hash_object(key), num_slots_minus_one);
         EntryPointer it = entries + ptrdiff_t(index);
         for (int8_t distance = 0; it->distance_from_desired >= distance; ++distance, ++it)
@@ -630,6 +643,7 @@ public:
             return;
         }
         auto new_prime_index = hash_policy.next_size_over(num_buckets);
+
         if (num_buckets == bucket_count())
             return;
         int8_t new_max_lookups = compute_max_lookups(num_buckets);
@@ -640,6 +654,7 @@ public:
         special_end_item->distance_from_desired = Entry::special_end_value;
         std::swap(entries, new_buckets);
         std::swap(num_slots_minus_one, num_buckets);
+
         --num_slots_minus_one;
         hash_policy.commit(new_prime_index);
         int8_t old_max_lookups = max_lookups;
@@ -658,6 +673,7 @@ public:
 
     void reserve(size_t num_elements)
     {
+
         size_t required_buckets = num_buckets_for_reserve(num_elements);
         if (required_buckets > bucket_count())
             rehash(required_buckets);
@@ -827,6 +843,7 @@ private:
         if (num_slots_minus_one == 0 || distance_from_desired == max_lookups || num_elements + 1 > (num_slots_minus_one + 1) * static_cast<double>(_max_load_factor))
         {
             grow();
+            std::cout << "growing " << std::endl;
             return emplace(std::forward<Key>(key), std::forward<Args>(args)...);
         }
         else if (current_entry->is_empty())
@@ -1241,11 +1258,21 @@ private:
     mod_function current_mod_function = &mod0;
 };
 
+static uint64_t HashFunction(size_t k) {
+        static size_t seed0 = 12923598712359872066ull;
+        static size_t seed1 = 7467732452331123588ull*seed0;
+        //keytype local = k;
+        //return XXH64(&local, 8, seed);
+        return  uint64_t(   __builtin_ia32_crc32di(k, seed0)
+                            | (__builtin_ia32_crc32di(k, seed1) << 32));
+    }
+
 struct power_of_two_hash_policy
 {
     size_t index_for_hash(size_t hash, size_t num_slots_minus_one) const
     {
-        return hash & num_slots_minus_one;
+
+        return HashFunction(hash) & num_slots_minus_one;
     }
     size_t keep_in_range(size_t index, size_t num_slots_minus_one) const
     {

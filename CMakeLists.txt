@@ -77,8 +77,13 @@ set (OLD_FLAGS ${CMAKE_CXX_FLAGS})
 # set (CMAKE_CXX_FLAGS
 #   "${CMAKE_CXX_FLAGS} -std=c++1y -g -msse4.2 -mcx16 -Wall -Wextra -O3")
 
-set (FLAGS "-std=c++17 -g -msse4.2 -mcx16 -Wall -Wextra -O3 -ggdb")
+if (DEBUG_HASH) 
+  set (FLAGS  "-std=c++17 -g -msse4.2 -mcx16 -Wall -Wextra -ggdb")
+else()
+  set (FLAGS  "-std=c++17 -g -msse4.2 -mcx16 -Wall -Wextra -O3 -ggdb")
+endif()
 
+message(" ${FLAGS}")
 include_directories(.)
 
 if (GROWT_ALLOCATOR STREQUAL POOL OR

@@ -25,6 +25,7 @@
 #include "example/update_fcts.h"
 #include <iostream> 
 
+//#define DEBUG
 namespace growt {
 
 template<class E, class HashFct = utils_tm::hash_tm::default_hash,
@@ -212,7 +213,10 @@ private:
         return 64 - log_size;                    // HashFct::significant_digits
     }
 
-    void Summary() {
+  void Summary() {
+      #ifndef DEBUG
+        return; 
+      #endif 
   int sum = 0;
   for (int d: distances) {
     if (d != -1) {
@@ -268,7 +272,10 @@ BaseCircular<E,HashFct,A>::BaseCircular(size_type capacity_)
 
 {
     _t = _allocator.allocate(_capacity);
-    std::cout << "capacity of table " << capacity_ << std::endl;
+    #ifdef DEBUG
+        std::cout << "N size" << capacity_ << "actual size " << _capacity << std::endl;
+    #endif 
+
     if ( !_t ) std::bad_alloc();
 
     std::fill( _t ,_t + _capacity , value_intern::get_empty() );
@@ -440,7 +447,9 @@ BaseCircular<E,HashFct,A>::insert_intern(const key_type& k,
         {
             if ( _t[temp].cas(curr, value_intern(k,d)) ){
 		//std::cout << k << " ---- " << (int)(i-htemp) << std::endl;
-		distances.push_back((int)(i-htemp));
+        #ifdef DEBUG 
+		    distances.push_back((int)(i-htemp));
+        #endif 
                 return make_insert_ret(k,d, &_t[temp],
                                        ReturnCode::SUCCESS_IN);
 	    }

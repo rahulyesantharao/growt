@@ -18,6 +18,8 @@
 #include "utils/default_hash.hpp"
 #include "data-structures/base_circular.h"
 
+//#define PRINT_STATS
+
 namespace growt {
 
 template<class Table, bool is_const = false>
@@ -326,12 +328,15 @@ SeqCircular<E,HF,A>::find(const key_type & k)
 
     counter++;
 
-    if(counter%10000 == 0) {
-        std::cout << "sucessful search " << std::endl;
+    #ifdef PRINT_STATS
+      if(counter%10000 == 0) {
+        std::cout << "sucessful search " <<" cap" << _capacity <<  std::endl;
         compute_stats(distances_sucessful);
         std::cout << "unsucessful search" << std::endl;
         compute_stats(distances_unsucessful);
-    }
+     }
+    #endif 
+  
 
     for (size_t i = htemp;;++i)  // i < htemp+MaDis
     {
