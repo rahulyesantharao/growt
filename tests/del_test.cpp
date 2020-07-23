@@ -46,6 +46,7 @@ alignas(64) static std::atomic_size_t unsucc_deletes;
 alignas(64) static std::atomic_size_t succ_found;
 
 
+
 int generate_keys(size_t end)
 {
     std::uniform_int_distribution<uint64_t> key_dis (2,range);
@@ -57,7 +58,7 @@ int generate_keys(size_t end)
 
             for (size_t i = s; i < e; i++)
             {
-                keys[i] = key_dis(re);
+                keys[i] = i; //key_dis(re);
             }
         });
 
@@ -89,6 +90,11 @@ int del_test(Hash& hash, size_t end, size_t size)
     auto err         = 0u;
     auto not_deleted = 0u;
 
+
+    // do W insertions
+    // delete i - W element
+    // insert i element
+    // if(
     ttm::execute_parallel(current_block, end,
         [&hash, &err, &not_deleted, size](size_t i)
         {
@@ -99,9 +105,9 @@ int del_test(Hash& hash, size_t end, size_t size)
             { ++err; }
 
             auto key2 = keys[i-size];
-
+            //std::cout << key2 << std::endl;
             if (! hash.erase(key2))
-            { ++not_deleted; }
+            { ++not_deleted;  /*std::cout << not_deleted << std::endl;*/ }
         });
 
     errors.fetch_add(err, std::memory_order_relaxed);
@@ -137,6 +143,7 @@ struct test_in_stages
 {
     static int execute(ThreadType t, size_t n, size_t cap, size_t it, size_t ws)
     {
+        std::cout << t.id << std::endl;
         utils_tm::pin_to_core(t.id);
 
         using Handle = typename HASHTYPE::Handle;
@@ -168,7 +175,7 @@ struct test_in_stages
             t.synchronize();
 
             Handle hash = hash_table.get_handle();
-
+            std::vector<uint64_t> delete_set;
 
             // STAGE0.1 prefill table with pre elements
             {
@@ -179,6 +186,7 @@ struct test_in_stages
 
             // STAGE1 n Mixed Operations
             {
+                std::cout <<"getting to delete test "<< std::endl;
                 if (ThreadType::is_main) current_block.store(ws);
 
                 auto duration = t.synchronized(del_test<Handle>,

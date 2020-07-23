@@ -101,7 +101,7 @@ set(TEST_DEP_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} ${TEST_DEP_LIBRARIES})
 
 
 # COMPILE THE EXAMPLE CODE (example/example.cpp)
-add_executable(example example/example.cpp)
+add_executable(example example/example.cpp utils/test_util.h)
 set_target_properties(example PROPERTIES COMPILE_FLAGS "${FLAGS}")
 target_link_libraries(example ${TEST_DEP_LIBRARIES})
 

@@ -17,7 +17,7 @@
 #include "utils/pin_thread.hpp"
 #include "utils/command_line_parser.hpp"
 #include "utils/output.hpp"
-
+#include "utils/test_util.h"
 #include <random>
 #include <iostream>
 
@@ -43,16 +43,13 @@ alignas(64) static uint64_t* keys;
 alignas(64) static std::atomic_size_t current_block;
 alignas(64) static std::atomic_size_t errors;
 
-
 int generate_random(size_t n)
 {
     std::uniform_int_distribution<uint64_t> dis(2,range);
-
     ttm::execute_blockwise_parallel(current_block, n,
         [&dis](size_t s, size_t e)
         {
             std::mt19937_64 re(s*10293903128401092ull);
-
             for (size_t i = s; i < e; i++)
             {
                 keys[i] = dis(re);
@@ -63,6 +60,22 @@ int generate_random(size_t n)
 }
 
 template <class Hash>
+void insert_key( Hash &hash, unsigned int & err, size_t i);
+
+template<class Hash>
+int fill_direct(Hash & hash, size_t start, size_t end){
+
+    auto err = 0u;
+    for(size_t i = start; i < end; i++){
+        insert_key<Hash>(hash, err, i);
+    }
+    errors.fetch_add(err, std::memory_order_relaxed);
+    return 0;
+}
+
+
+
+template <class Hash>
 int fill(Hash& hash, size_t end)
 {
     auto err = 0u;
@@ -70,28 +83,70 @@ int fill(Hash& hash, size_t end)
     ttm::execute_parallel(current_block, end,
         [&hash, &err](size_t i)
         {
-            auto key = keys[i];
-            if (! hash.insert(key, i+2).second )
-            {
-                // Insertion failed? Possibly already inserted.
-                ++err;
-
-            }
+            insert_key(hash, err, i);
         });
+
+    #ifdef DEBUG
+        std::cout <<"fill error " << err << std::endl;
+    #endif
 
     errors.fetch_add(err, std::memory_order_relaxed);
     return 0;
 }
 
+template <class Hash>
+void insert_key(const Hash &hash, unsigned int & err, size_t i) {
+    auto key = keys[i];
+    if (! hash.insert(key, i+2).second )
+    {
+        // Insertion failed? Possibly already inserted.
+        ++err;
+
+    }
+}
+
+template <class Hash>
+void getElement( Hash &hash, unsigned int err, int i);
+
+template<class Hash>
+int find_unsucc_range(Hash & hash, size_t start, size_t end)
+{
+    auto err = 0u;
+
+    for(size_t i = start; i < end; i++){
+       getElement<Hash>(hash, err, i);
+    }
+
+
+#ifdef DEBUG
+    std::cout <<"find unsuccess error " << err << std::endl;
+#endif
+    errors.fetch_add(err, std::memory_order_relaxed);
+    return 0;
+}
+
+template <class Hash>
+inline void getElement( Hash &hash, unsigned int err, int i) {
+    auto key = keys[i];
+
+    auto data = hash.find(key);
+
+    if (data != hash.end())
+    {
+        // Random key found (unexpected)
+        ++err;
+    }
+}
 
 template <class Hash>
 int find_unsucc(Hash& hash, size_t begin, size_t end)
 {
     auto err = 0u;
 
-    ttm::execute_parallel(current_block, end,
-        [&hash, &err, begin](size_t i)
+    ttm::execute_blockwise_parallel(current_block, end,
+        [&hash, &err, begin](size_t s, size_t e)
         {
+        for(size_t i = s; i < e; i++){
             auto key = keys[i];
 
             auto data = hash.find(key);
@@ -101,11 +156,17 @@ int find_unsucc(Hash& hash, size_t begin, size_t end)
                 // Random key found (unexpected)
                 ++err;
             }
+        }
+
         });
 
+    #ifdef DEBUG
+        std::cout <<"find unsuccess error " << err << std::endl;
+    #endif
     errors.fetch_add(err, std::memory_order_relaxed);
     return 0;
 }
+
 
 template <class Hash>
 int find_succ(Hash& hash, size_t end)
@@ -124,7 +185,9 @@ int find_succ(Hash& hash, size_t end)
                 ++err;
             }
         });
-
+    #ifdef DEBUG
+        std::cout <<"find sucessful error " << err << std::endl;
+    #endif
     errors.fetch_add(err, std::memory_order_relaxed);
     return 0;
 }
@@ -137,7 +200,6 @@ struct test_in_stages
         using Handle = typename HASHTYPE::Handle;
 
         utils_tm::pin_to_core(t.id);
-
         if (ThreadType::is_main)
         {
             keys = new uint64_t[2*n];
@@ -146,6 +208,7 @@ struct test_in_stages
         // STAGE0 Create Random Keys
         {
             if (ThreadType::is_main) current_block.store (0);
+
             t.synchronized(generate_random, 2*n);
         }
 
@@ -164,23 +227,24 @@ struct test_in_stages
             t.synchronize();
 
             Handle hash = hash_table.get_handle();
-
+            size_t start;
+            size_t end;
 
             // STAGE2 n Insertions
             {
                 if (ThreadType::is_main) current_block.store(0);
 
-                auto duration = t.synchronized(fill<Handle>,hash, n);
+                loop_range(t, 0, n, start, end);
 
+               auto duration = t.synchronized(fill<Handle>,hash, n);;
                 t.out << otm::width(10) << duration.second/1000000.;
             }
 
             // STAGE3 n Finds Unsuccessful
             {
                 if (ThreadType::is_main) current_block.store(n);
-
-                auto duration = t.synchronized(find_unsucc<Handle>,
-                                               hash, n, 2*n);
+                loop_range(t, n, 2*n, start, end);
+                auto duration = t.synchronized(find_unsucc_range<Handle>, hash, start, end);
 
                 t.out << otm::width(10) << duration.second/1000000.;
             }
@@ -214,6 +278,8 @@ struct test_in_stages
 
         return 0;
     }
+
+
 };
 
 
