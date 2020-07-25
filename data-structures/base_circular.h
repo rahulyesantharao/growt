@@ -25,7 +25,7 @@
 #include "example/update_fcts.h"
 #include <iostream> 
 
-//#define DEBUG
+//#define DEBUG_HASH
 namespace growt {
 
 template<class E, class HashFct = utils_tm::hash_tm::default_hash,
@@ -214,7 +214,7 @@ private:
     }
 
   void Summary() {
-      #ifndef DEBUG
+      #ifndef DEBUG_HASH
         return; 
       #endif 
   int sum = 0;
@@ -272,7 +272,7 @@ BaseCircular<E,HashFct,A>::BaseCircular(size_type capacity_)
 
 {
     _t = _allocator.allocate(_capacity);
-    #ifdef DEBUG
+    #ifdef DEBUG_HASH
         std::cout << "N size" << capacity_ << "actual size " << _capacity << std::endl;
     #endif 
 
@@ -447,7 +447,7 @@ BaseCircular<E,HashFct,A>::insert_intern(const key_type& k,
         {
             if ( _t[temp].cas(curr, value_intern(k,d)) ){
 		//std::cout << k << " ---- " << (int)(i-htemp) << std::endl;
-        #ifdef DEBUG 
+        #ifdef DEBUG_HASH
 		    distances.push_back((int)(i-htemp));
         #endif 
                 return make_insert_ret(k,d, &_t[temp],

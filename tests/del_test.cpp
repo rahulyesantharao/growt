@@ -17,6 +17,9 @@
 #include "utils/pin_thread.hpp"
 #include "utils/command_line_parser.hpp"
 #include "utils/output.hpp"
+#include "utils/test_util.h"
+#include "assert.h"
+
 
 #include <random>
 
@@ -54,11 +57,11 @@ int generate_keys(size_t end)
     ttm::execute_blockwise_parallel(current_block, end,
         [&key_dis](size_t s, size_t e)
         {
-            std::mt19937_64 re(s*10293903128401092ull);
-
             for (size_t i = s; i < e; i++)
             {
-                keys[i] = i; //key_dis(re);
+                //generate sequential key distribution so that keys are
+                //guaranteed to be unique
+                keys[i] = i;
             }
         });
 
@@ -84,32 +87,45 @@ int prefill(Hash& hash, size_t pre)
 }
 
 
-template <class Hash>
-int del_test(Hash& hash, size_t end, size_t size)
+
+template <class Hash,  class ThreadType >
+int del_test_per_thread(ThreadType t, Hash& hash, size_t w_s, size_t total_size)
 {
     auto err         = 0u;
     auto not_deleted = 0u;
 
+    size_t start;
+    size_t end;
+    size_t start_ws;
+    size_t end_ws;
 
-    // do W insertions
-    // delete i - W element
-    // insert i element
-    // if(
-    ttm::execute_parallel(current_block, end,
-        [&hash, &err, &not_deleted, size](size_t i)
-        {
-            auto key = keys[i];
+    loop_range(t, w_s, total_size, start, end);
+    loop_range(t, 0, w_s, start_ws, end_ws);
 
-            auto temp = hash.insert(key, i+2);
-            if (! temp.second )
-            { ++err; }
 
-            auto key2 = keys[i-size];
-            //std::cout << key2 << std::endl;
-            if (! hash.erase(key2))
-            { ++not_deleted;  /*std::cout << not_deleted << std::endl;*/ }
-        });
+    size_t delete_after_insert_index = start;
+    for(size_t i = start; i < end; i++){
+        auto key = keys[i];
 
+        auto temp = hash.insert(key, i+2);
+        if (! temp.second )
+        { ++err; }
+
+        uint64_t delete_key;
+        if(start_ws < end_ws ){
+            delete_key = keys[start_ws++];
+        }
+        else{
+            delete_key = keys[delete_after_insert_index++];
+            assert(delete_after_insert_index < end);
+        }
+        if (! hash.erase(delete_key))
+            ++not_deleted;
+    }
+
+    #ifdef DEBUG_HASH
+        printf("keys not deleted %ld \n", not_deleted);
+    #endif
     errors.fetch_add(err, std::memory_order_relaxed);
     unsucc_deletes.fetch_add(not_deleted, std::memory_order_relaxed);
     return 0;
@@ -143,7 +159,6 @@ struct test_in_stages
 {
     static int execute(ThreadType t, size_t n, size_t cap, size_t it, size_t ws)
     {
-        std::cout << t.id << std::endl;
         utils_tm::pin_to_core(t.id);
 
         using Handle = typename HASHTYPE::Handle;
@@ -175,7 +190,6 @@ struct test_in_stages
             t.synchronize();
 
             Handle hash = hash_table.get_handle();
-            std::vector<uint64_t> delete_set;
 
             // STAGE0.1 prefill table with pre elements
             {
@@ -186,11 +200,10 @@ struct test_in_stages
 
             // STAGE1 n Mixed Operations
             {
-                std::cout <<"getting to delete test "<< std::endl;
                 if (ThreadType::is_main) current_block.store(ws);
 
-                auto duration = t.synchronized(del_test<Handle>,
-                                               hash, ws+n, ws);
+                auto duration = t.synchronized(del_test_per_thread<Handle, ThreadType>,
+                                               t, hash, ws, n);
 
                 t.out << otm::width(10) << duration.second/1000000.;
             }
