@@ -11,6 +11,7 @@
  ******************************************************************************/
 
 #include "tests/selection.h"
+
 #include "data-structures/returnelement.h"
 
 #include "utils/default_hash.hpp"
@@ -21,7 +22,8 @@
 #include "utils/output.hpp"
 
 #include "example/update_fcts.h"
-
+#include "unordered_map"
+#include <algorithm>
 #include <random>
 
 /*
@@ -43,6 +45,32 @@ alignas(64) static std::atomic_size_t current_block;
 alignas(64) static std::atomic_size_t errors;
 alignas(64) static utils_tm::zipf_generator zipf_gen;
 
+
+void printFrequency(size_t n)
+{
+    // Define an map
+    std::unordered_map<uint64_t, uint64_t> M;
+
+    // Traverse vector vec check if
+    // current element is present
+    // or not
+    for (size_t i = 0; i < n; i++) {
+        M[keys[i]] += 1;
+    }
+    std::vector<uint64_t> g;
+
+    // Traverse the map to print the
+    // frequency
+    for (auto& it : M) {
+
+       g.push_back(it.second);
+    }
+    std::cout << "size " << g.size() << std::endl;
+    std::sort(g.begin(), g.end());
+    for(size_t i = 0; i < 100 && i < g.size(); i++){
+        std::cout << "percent " << (g[g.size() - i  - 1])<< std::endl;
+    }
+}
 
 int generate_random(size_t n, double con)
 {
@@ -71,11 +99,23 @@ int fill(Hash& hash, size_t n)
     ttm::execute_parallel(current_block, n,
         [&hash, &err](size_t i)
         {
-            if (! hash.insert(i+2, i+2).second) ++err;
+            if (! hash.insert(keys[i], i+2).second) {
+                auto data = hash.find(keys[i]);
+                if(data == hash.end()){
+                    if(err < 5){
+                        std::cout  << "how is that possible" << keys[i] << "val " << (*data).second << std::endl;
+                    }
+
+                    err++;
+                }
+              //  ++err;
+            }
         });
 
-
-    errors.fetch_add(err, std::memory_order_relaxed);
+    if(err > 0){
+      //  std::cout << "errors fill " << err << std::endl;
+    }
+   // errors.fetch_add(err, std::memory_order_relaxed);
     return 0;
 }
 
@@ -90,14 +130,20 @@ int find_contended(Hash& hash, size_t n)
         {
             auto key = keys[i];
 
-            auto data = hash.find(key);
+            auto data = hash.find(keys[i]);
 
-            if (data == hash.end() || (*data).second != key)
+            if (data == hash.end() || keys[(*data).second - 2] != key)
             {
+                if(err < 5){
+                    std::cout << "errors fill " << "key " << key << " "<< (data == hash.end()) << std::endl;
+                }
                 ++err;
             }
         });
 
+    if(err > 0){
+        std::cout << "errors find contended" << std::endl;
+    }
     errors.fetch_add(err, std::memory_order_relaxed);
 
 
@@ -117,6 +163,9 @@ int update_contended(Hash& hash, size_t n)
             if (! hash.update(key, growt::example::Overwrite(), i+2).second) ++err;
         });
 
+    if(err > 0){
+        std::cout << "errors update" << std::endl;
+    }
     errors.fetch_add(err, std::memory_order_relaxed);
 
     return 0;
@@ -146,6 +195,9 @@ int val_update(Hash& hash, size_t n)
             }
         });
 
+    if(err > 0){
+        std::cout << "errors in val update" << std::endl;
+    }
     // std::cout << " " << err << std::flush;
     errors.fetch_add(err, std::memory_order_relaxed);
     return 0;
@@ -170,6 +222,7 @@ struct test_in_stages {
         {
             if (ThreadType::is_main) current_block.store (0);
             t.synchronized(generate_random, n, con);
+            printFrequency(n);
         }
 
         for (size_t i = 0; i<it; ++i)
@@ -200,15 +253,6 @@ struct test_in_stages {
                 t.out << otm::width(10) << duration.second/1000000.;
             }
 
-            // STAGE3 n Cont Random Finds Successful
-            {
-                if (ThreadType::is_main) current_block.store(0);
-
-                auto duration = t.synchronized(find_contended<Handle>, hash, n);
-
-                t.out << otm::width(10) << duration.second/1000000.;
-            }
-
             // STAGE4 n Cont Random Updates
             {
                 if (ThreadType::is_main) current_block.store(0);
@@ -220,14 +264,27 @@ struct test_in_stages {
                 t.out << otm::width(10) << duration.second/1000000.;
             }
 
+
+            // STAGE3 n Cont Random Finds Successful
+            {
+                if (ThreadType::is_main) current_block.store(0);
+
+                auto duration = t.synchronized(find_contended<Handle>, hash, n);
+
+                t.out << otm::width(10) << duration.second/1000000.;
+            }
+
+
             // STAGE5 Validation of Hash Table Contents
             {
                 if (ThreadType::is_main) current_block.store(0);
 
-                auto duration = t.synchronized(val_update<Handle>, hash, n);
+
+             //    auto duration = t.synchronized(val_update<Handle>, hash, n);
 
 
-                t.out << otm::width(10) << duration.second/1000000.
+             //   t.out << otm::width(10) << duration.second/1000000.
+                 t.out
                       << otm::width(9)  << errors.load();
             }
 
@@ -263,9 +320,9 @@ int main(int argn, char** argc)
                << otm::width(9)  << "cap"
                << otm::width(5)  << "con"
                << otm::width(10) << "t_ins_or"
-               << otm::width(10) << "t_find_c"
                << otm::width(10) << "t_updt_c"
-               << otm::width(10) << "t_val_up"
+               << otm::width(10) << "t_find_c"
+         //      << otm::width(10) << "t_val_up"
                << otm::width(9)  << "errors"
                << std::endl;
 

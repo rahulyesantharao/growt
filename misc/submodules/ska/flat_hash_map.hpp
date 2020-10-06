@@ -13,6 +13,7 @@
 #include <utility>
 #include <type_traits>
 #include <iostream>
+#include <vector>
 
 #ifdef _MSC_VER
 #define SKA_NOINLINE(...) __declspec(noinline) __VA_ARGS__
@@ -25,6 +26,9 @@ namespace ska
 struct prime_number_hash_policy;
 struct power_of_two_hash_policy;
 struct fibonacci_hash_policy;
+
+//#define DEBUG
+
 
 namespace detailv3
 {
@@ -438,6 +442,9 @@ public:
     }
     ~sherwood_v3_table()
     {
+    #ifdef DEBUG
+        summary();
+    #endif
         clear();
         deallocate_data(entries, num_slots_minus_one, max_lookups);
     }
@@ -553,6 +560,7 @@ public:
 
         size_t index = hash_policy.index_for_hash(hash_object(key), num_slots_minus_one);
         EntryPointer it = entries + ptrdiff_t(index);
+
         for (int8_t distance = 0; it->distance_from_desired >= distance; ++distance, ++it)
         {
             if (compares_equal(key, it->value))
@@ -648,6 +656,7 @@ public:
             return;
         int8_t new_max_lookups = compute_max_lookups(num_buckets);
         EntryPointer new_buckets(AllocatorTraits::allocate(*this, num_buckets + new_max_lookups));
+        std::cout << "size of " << sizeof(EntryAlloc) << std::endl;
         EntryPointer special_end_item = new_buckets + static_cast<ptrdiff_t>(num_buckets + new_max_lookups - 1);
         for (EntryPointer it = new_buckets; it != special_end_item; ++it)
             it->distance_from_desired = -1;
@@ -842,8 +851,10 @@ private:
         using std::swap;
         if (num_slots_minus_one == 0 || distance_from_desired == max_lookups || num_elements + 1 > (num_slots_minus_one + 1) * static_cast<double>(_max_load_factor))
         {
-            grow();
             std::cout << "growing " << std::endl;
+            summary();
+            grow();
+
             return emplace(std::forward<Key>(key), std::forward<Args>(args)...);
         }
         else if (current_entry->is_empty())
@@ -881,6 +892,36 @@ private:
                 }
             }
         }
+    }
+
+
+    void summary() {
+        int sum = 0;
+        std::vector<int> distances;
+        EntryPointer end = entries + static_cast<ptrdiff_t>(num_slots_minus_one + max_lookups);
+        for (EntryPointer it = entries; it != end; ++it) {
+            auto distance = it->distance_from_desired;
+            if (distance != -1) {
+               // std::cout << it->value.first << " -- " << (int) distance << std::endl;
+                distances.push_back(distance);
+                sum += distance;
+            }
+        }
+
+        double avg = ((double)sum)/distances.size();
+        double var = 0;
+        for (int d : distances) {
+            var += (d-avg)*(d-avg);
+        }
+        if (distances.size() == 0) return;
+        var /= distances.size();
+        std::sort(distances.begin(), distances.end());
+        std::cout << "\nFor " << distances.size() << " elements..." << std::endl;
+        std::cout << "MIN: " << distances[0] << std::endl;
+        std::cout << "MEDIAN: " << distances[distances.size()/2] << std::endl;
+        std::cout << "AVG: " << avg << std::endl;
+        std::cout << "MAX: " << distances[distances.size()-1] << std::endl;
+        std::cout << "VAR: " << var << std::endl;
     }
 
     void grow()

@@ -21,6 +21,8 @@
 #include <random>
 #include <iostream>
 
+using namespace std::chrono;
+
 #ifdef MALLOC_COUNT
 #include "malloc_count.h"
 #endif
@@ -67,12 +69,19 @@ int fill(Hash& hash, size_t end)
 {
     auto err = 0u;
 
+
+    size_t counter = 0;
     ttm::execute_parallel(current_block, end,
-        [&hash, &err](size_t i)
+        [&hash, &err, &counter](size_t i)
         {
             auto key = keys[i];
+            /*if((counter  % 100000 == 0 )&& counter > 0){
+                printf("thread id %ld done with fill! \n", counter);
+            }*/
+            counter++;
             if (! hash.insert(key, i+2).second )
             {
+                printf("erro insert  \n");
                 // Insertion failed? Possibly already inserted.
                 ++err;
 
@@ -89,18 +98,21 @@ int find_unsucc(Hash& hash, size_t begin, size_t end)
 {
     auto err = 0u;
 
-    ttm::execute_parallel(current_block, end,
-        [&hash, &err, begin](size_t i)
+    ttm::execute_blockwise_parallel(current_block, end,
+        [&hash, &err, begin](size_t s, size_t e)
         {
-            auto key = keys[i];
+            for (size_t i = s; i < e; i++){
+                auto key = keys[i];
 
-            auto data = hash.find(key);
+                auto data = hash.find(key);
 
-            if (data != hash.end())
-            {
-                // Random key found (unexpected)
-                ++err;
+                if (data != hash.end())
+                {         printf("erro find unsucess \n");
+                    // Random key found (unexpected)
+                    ++err;
+                }
             }
+
         });
 
     errors.fetch_add(err, std::memory_order_relaxed);
@@ -112,16 +124,20 @@ int find_succ(Hash& hash, size_t end)
 {
     auto err = 0u;
 
-    ttm::execute_parallel(current_block, end,
-        [&hash, &err, end](size_t i)
+    ttm::execute_blockwise_parallel(current_block, end,
+        [&hash, &err, end](size_t s, size_t e)
         {
-            auto key = keys[i];
+            for(size_t i = s; i < e; i++){
+                auto key = keys[i];
 
-            auto data = hash.find(key);
+                auto data = hash.find(key);
 
-            if (data == hash.end()) // || (*data).second != i+2)
-            {
-                ++err;
+                if (data == hash.end()) // || (*data).second != i+2)
+                {
+                    std::cout << "key " << key << std::endl;
+                    printf("erro find sucess \n");
+                    ++err;
+                }
             }
         });
 
@@ -172,6 +188,7 @@ struct test_in_stages
 
                 auto duration = t.synchronized(fill<Handle>,hash, n);
 
+               // printf("thread id %ld done with fill! \n", t.id);
                 t.out << otm::width(10) << duration.second/1000000.;
             }
 
@@ -181,7 +198,7 @@ struct test_in_stages
 
                 auto duration = t.synchronized(find_unsucc<Handle>,
                                                hash, n, 2*n);
-
+               // printf("thread id %ld done with find unsu! \n", t.id);
                 t.out << otm::width(10) << duration.second/1000000.;
             }
 
@@ -192,6 +209,7 @@ struct test_in_stages
                 auto duration = t.synchronized(find_succ<Handle>,
                                                hash, n);
 
+            //    printf("thread id %ld done with find sucess!", t.id);
                 t.out << otm::width(10) << duration.second/1000000.;
                 t.out << otm::width(10) << errors.load();
             }

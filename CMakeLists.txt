@@ -80,7 +80,7 @@ set (OLD_FLAGS ${CMAKE_CXX_FLAGS})
 if (DEBUG_HASH) 
   set (FLAGS  "-std=c++17 -g -msse4.2 -mcx16 -Wall -Wextra -ggdb")
 else()
-  set (FLAGS  "-std=c++17 -g -msse4.2 -mcx16 -Wall -Wextra -O3 -ggdb")
+  set (FLAGS  "-std=c++17 -g -msse4.2 -mcx16 -Wall -Wextra -O3 -ggdb -flto ")
 endif()
 
 message(" ${FLAGS}")

@@ -252,7 +252,7 @@ int main(int argn, char** argc)
     utils_tm::command_line_parser c{argn, argc};
     size_t n   = c.int_arg("-n" , 10000000);
     size_t p   = c.int_arg("-p" , 4);
-    size_t ws  = c.int_arg("-ws", n/100);
+    size_t ws  = c.int_arg("-ws", n/4);
     size_t cap = c.int_arg("-c" , ws);
     size_t it  = c.int_arg("-it", 5);
     if (! c.report()) return 1;

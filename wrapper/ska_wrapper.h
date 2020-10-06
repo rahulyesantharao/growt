@@ -102,6 +102,6 @@ public:
         return hash.erase(k) ? 1ul : 0ul;
     }
 
-    inline iterator end() { return iterator(); }
+    inline iterator end() { return iterator(-1,0); }
 };
 #endif // ROBINHOOD_WRAPPER
