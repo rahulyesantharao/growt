@@ -20,11 +20,15 @@
 #include "utils/pin_thread.hpp"
 #include "utils/command_line_parser.hpp"
 #include "utils/output.hpp"
+#include "utils/file_processing/dist_reader.h"
+
 
 #include "example/update_fcts.h"
 #include "unordered_map"
 #include <algorithm>
 #include <random>
+
+
 
 /*
  * This Test is meant to test the tables performance on uniform random inputs.
@@ -46,47 +50,21 @@ alignas(64) static std::atomic_size_t errors;
 alignas(64) static utils_tm::zipf_generator zipf_gen;
 
 
-void printFrequency(size_t n)
-{
-    // Define an map
-    std::unordered_map<uint64_t, uint64_t> M;
 
-    // Traverse vector vec check if
-    // current element is present
-    // or not
-    for (size_t i = 0; i < n; i++) {
-        M[keys[i]] += 1;
-    }
-    std::vector<uint64_t> g;
-
-    // Traverse the map to print the
-    // frequency
-    for (auto& it : M) {
-
-       g.push_back(it.second);
-    }
-    std::cout << "size " << g.size() << std::endl;
-    std::sort(g.begin(), g.end());
-    for(size_t i = 0; i < 100 && i < g.size(); i++){
-        std::cout << "percent " << (g[g.size() - i  - 1])<< std::endl;
-    }
-}
-
-int generate_random(size_t n, double con)
+int generate_random(size_t n, dist_reader & reader)
 {
     std::uniform_real_distribution<double> prob(0.,1.);
 
+    std::cout <<"total size of keys" << n << std::endl;
     ttm::execute_blockwise_parallel(current_block, n,
-        [n, con, &prob](size_t s, size_t e)
+        [n,  &prob, &reader](size_t s, size_t e)
         {
             std::mt19937_64 re(s*10293903128401092ull);
 
-            // for (size_t i = s; i < e; i++)
-            // {
-            //     keys[i] = zipf(n, con, prob(re))+2;
-            // }
-            zipf_gen.generate(re, &keys[s], e-s);
+            reader.getSampleRange(s, e, keys);
+
         });
+
 
     return 0;
 }
@@ -206,7 +184,7 @@ int val_update(Hash& hash, size_t n)
 template <class ThreadType>
 struct test_in_stages {
 
-    static int execute(ThreadType t, size_t n, size_t cap, size_t it, double con)
+    static int execute(ThreadType t, size_t n, size_t cap, size_t it, dist_reader & reader)
     {
 
         utils_tm::pin_to_core(t.id);
@@ -221,8 +199,7 @@ struct test_in_stages {
         // STAGE0 Create Random Keys
         {
             if (ThreadType::is_main) current_block.store (0);
-            t.synchronized(generate_random, n, con);
-            printFrequency(n);
+            t.synchronized(generate_random, n, reader);
         }
 
         for (size_t i = 0; i<it; ++i)
@@ -235,8 +212,7 @@ struct test_in_stages {
             t.out << otm::width(3) << i
                   << otm::width(3) << t.p
                   << otm::width(9) << n
-                  << otm::width(9) << cap
-                  << otm::width(5) << con;
+                  << otm::width(9) << cap;
 
             // Needed for synchronization (main thread has finished set_up_hash)
             t.synchronize();
@@ -311,6 +287,11 @@ int main(int argn, char** argc)
     size_t p   = c.int_arg("-p", 4);
     size_t cap = c.int_arg("-c", n);
     size_t it  = c.int_arg("-it", 5);
+    std::string fileName = c.str_arg("-file");
+
+    std::cout << fileName << std::endl;
+
+    dist_reader reader(fileName);
     double con = c.double_arg("-con", 1.0);
     if (! c.report()) return 1;
 
@@ -318,7 +299,6 @@ int main(int argn, char** argc)
                << otm::width(3)  << "p"
                << otm::width(9)  << "n"
                << otm::width(9)  << "cap"
-               << otm::width(5)  << "con"
                << otm::width(10) << "t_ins_or"
                << otm::width(10) << "t_updt_c"
                << otm::width(10) << "t_find_c"
@@ -326,7 +306,7 @@ int main(int argn, char** argc)
                << otm::width(9)  << "errors"
                << std::endl;
 
-    ttm::start_threads<test_in_stages>(p, n, cap, it, con);
+    ttm::start_threads<test_in_stages>(p, n, cap, it, reader);
 
     return 0;
 }
