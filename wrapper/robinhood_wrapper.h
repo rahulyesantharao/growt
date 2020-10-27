@@ -4,7 +4,11 @@
 #include "hashtable/handler.hpp"
 #include "wrapper/stupid_iterator.h"
 
+#include "string"
+#include <typeinfo>
+#include <typeindex>
 class RobindHoodHandlerWrapper {
+    inline const static std::string typeName = "RobindHoodHandlerWrapper";
     Handler<> *hash_;
 
     using key_type = size_t;
@@ -15,6 +19,25 @@ class RobindHoodHandlerWrapper {
 
 public:
     RobindHoodHandlerWrapper(Handler<> *hash) : hash_(hash) {
+    }
+
+    template <class T>
+    static bool isTypeRobinhood(T & obj){
+        std::string objName = typeid(obj).name();
+        return objName.find(typeName) != std::string::npos;
+    }
+
+    template <class T>
+    static void freeIfRobinhoodWrapper(T & obj){
+        if(isTypeRobinhood(obj)){
+            std::cout <<" freeing wrapper " << std::endl;
+            auto * r_wrapper = reinterpret_cast<RobindHoodHandlerWrapper*>(&obj);
+            delete r_wrapper->hash_;
+        }
+    }
+
+    RobindHoodHandlerWrapper() {
+        std::cout << "called default empty constructor " << std::endl;
     }
 
     inline iterator find(const key_type &k) {
@@ -79,6 +102,10 @@ public:
 
     inline iterator end() { return iterator(-1, -1); }
 
+    ~RobindHoodHandlerWrapper(){
+        std::cout << "Called destructor " << std::endl;
+        delete hash_;
+    }
 };
 
 
@@ -113,6 +140,8 @@ public:
         auto *wrapper = new RobindHoodHandlerWrapper(manager.GetThreadHandler());
         return *(wrapper);
     }
+
+
 
 };
 #endif // ROBINHOOD_WRAPPER
