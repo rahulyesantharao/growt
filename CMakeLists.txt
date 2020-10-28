@@ -23,6 +23,7 @@ if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
   message(SEND_ERROR "In-source builds are not allowed.")
 endif()
 
+
 option(GROWT_BUILD_TSX
   "(optional) builds tests using TSX optimized hash tables." OFF)
 
@@ -78,9 +79,9 @@ set (OLD_FLAGS ${CMAKE_CXX_FLAGS})
 #   "${CMAKE_CXX_FLAGS} -std=c++1y -g -msse4.2 -mcx16 -Wall -Wextra -O3")
 
 if (DEBUG_HASH) 
-  set (FLAGS  "-std=c++17 -g -msse4.2 -mcx16 -Wall -Wextra -ggdb")
+  set (FLAGS  "-std=c++17 -g -msse4.2 -mcx16 -ggdb")
 else()
-  set (FLAGS  "-std=c++17 -g -msse4.2 -mcx16 -Wall -Wextra -O3 -ggdb -flto ")
+  set (FLAGS  "-std=c++17 -g -msse4.2 -mcx16  -O3 -ggdb -flto ")
 endif()
 
 message(" ${FLAGS}")
@@ -312,12 +313,12 @@ endfunction( GrowXExecutable )
 
 
 GrowTExecutable( FOLKLORE ins_test ins ins_none_folklore )
-GrowTExecutable( FOLKLORE mix_test mix mix_none_folklore )
+#GrowTExecutable( FOLKLORE mix_test mix mix_none_folklore )
 GrowTExecutable( FOLKLORE con_test con con_none_folklore )
 GrowTExecutable( FOLKLORE agg_test agg agg_none_folklore )
 
 GrowTExecutable( SEQUENTIAL ins_test seq ins_full_sequential )
-GrowTExecutable( SEQUENTIAL mix_test seq mix_full_sequential )
+#GrowTExecutable( SEQUENTIAL mix_test seq mix_full_sequential )
 GrowTExecutable( SEQUENTIAL con_test seq con_full_sequential )
 GrowTExecutable( SEQUENTIAL agg_test seq agg_full_sequential )
 
@@ -357,7 +358,7 @@ endif()
 
 if (GROWT_BUILD_TSX)
   GrowXExecutable( XFOLKLORE ins_test ins ins_none_xfolklore )
-  GrowXExecutable( XFOLKLORE mix_test mix mix_none_xfolklore )
+  #GrowXExecutable( XFOLKLORE mix_test mix mix_none_xfolklore )
   GrowXExecutable( XFOLKLORE con_test con con_none_xfolklore )
   GrowXExecutable( XFOLKLORE agg_test agg agg_none_xfolklore )
   GrowXExecutable( UAXGROW ins_test ins ins_full_uaxGrowT )
