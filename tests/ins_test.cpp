@@ -11,6 +11,7 @@
  ******************************************************************************/
 
 #include "tests/selection.h"
+#include "wrapper/robinhood_wrapper.h"
 
 #include "utils/default_hash.hpp"
 #include "utils/thread_coordination.hpp"
@@ -40,7 +41,7 @@ const static uint64_t range = (1ull << 62) -1;
 namespace otm = utils_tm::out_tm;
 namespace ttm = utils_tm::thread_tm;
 
-alignas(64) static HASHTYPE hash_table = HASHTYPE(0);
+static HASHTYPE * hash_table;
 alignas(64) static uint64_t* keys;
 alignas(64) static std::atomic_size_t current_block;
 alignas(64) static std::atomic_size_t errors;
@@ -169,7 +170,7 @@ struct test_in_stages
         {
             // STAGE 0.1
             t.synchronized(
-                [cap] (bool m) { if (m) hash_table = HASHTYPE(cap); return 0; },
+                [cap] (bool m) { if (m) hash_table = new (std::align_val_t{ 64 }) HASHTYPE(cap); return 0; },
                 ThreadType::is_main);
 
             t.out << otm::width(3) << i
@@ -179,7 +180,7 @@ struct test_in_stages
 
             t.synchronize();
 
-            Handle hash = hash_table.get_handle();
+            Handle hash = hash_table->get_handle();
 
 
             // STAGE2 n Insertions
@@ -188,7 +189,6 @@ struct test_in_stages
 
                 auto duration = t.synchronized(fill<Handle>,hash, n);
 
-               // printf("thread id %ld done with fill! \n", t.id);
                 t.out << otm::width(10) << duration.second/1000000.;
             }
 
@@ -198,7 +198,6 @@ struct test_in_stages
 
                 auto duration = t.synchronized(find_unsucc<Handle>,
                                                hash, n, 2*n);
-               // printf("thread id %ld done with find unsu! \n", t.id);
                 t.out << otm::width(10) << duration.second/1000000.;
             }
 
@@ -209,7 +208,6 @@ struct test_in_stages
                 auto duration = t.synchronized(find_succ<Handle>,
                                                hash, n);
 
-            //    printf("thread id %ld done with find sucess!", t.id);
                 t.out << otm::width(10) << duration.second/1000000.;
                 t.out << otm::width(10) << errors.load();
             }
@@ -221,6 +219,8 @@ struct test_in_stages
             t.out << std::endl;
             if (ThreadType::is_main) errors.store(0);
 
+            RobindHoodHandlerWrapper::freeIfRobinhoodWrapper(hash);
+            if (ThreadType::is_main) delete (hash_table);
             // Some Synchronization
             t.synchronize();
         }
