@@ -30,14 +30,9 @@ public:
     template <class T>
     static void freeIfRobinhoodWrapper(T & obj){
         if(isTypeRobinhood(obj)){
-            std::cout <<" freeing wrapper " << std::endl;
             auto * r_wrapper = reinterpret_cast<RobindHoodHandlerWrapper*>(&obj);
             delete r_wrapper->hash_;
         }
-    }
-
-    RobindHoodHandlerWrapper() {
-        std::cout << "called default empty constructor " << std::endl;
     }
 
     inline iterator find(const key_type &k) {
@@ -103,7 +98,6 @@ public:
     inline iterator end() { return iterator(-1, -1); }
 
     ~RobindHoodHandlerWrapper(){
-        std::cout << "Called destructor " << std::endl;
         delete hash_;
     }
 };
@@ -114,31 +108,48 @@ class RobinhoodWrapper
 private:
     using HashType = HandlerManager<>;
 
-    HashType manager;
+    HashType * manager;
     size_t capacity;
+    bool handler_out;
 
 public:
 
 
     RobinhoodWrapper() = delete;
-    RobinhoodWrapper(size_t capacity_) : manager(capacity_), capacity(capacity_) {}
+    RobinhoodWrapper(size_t capacity_) : capacity(capacity_), handler_out(false) {
+        manager = new HashType(capacity);
+    }
     RobinhoodWrapper(const RobinhoodWrapper&) = delete;
     RobinhoodWrapper& operator=(const RobinhoodWrapper&) = delete;
 
-    RobinhoodWrapper(RobinhoodWrapper&& rhs) : manager(rhs.capacity), capacity(rhs.capacity) {}
+    RobinhoodWrapper(RobinhoodWrapper&& rhs) : capacity(rhs.capacity) {
+        manager = new HashType(rhs.capacity);
+    }
 
     RobinhoodWrapper& operator=(RobinhoodWrapper&& rhs)
     {
         capacity = rhs.capacity;
-        (& manager)->~HashType();
-        new (& manager) HashType(rhs.capacity);
+        if(manager != nullptr){
+            (manager)->~HashType();
+        }
+
+        new (manager) HashType(rhs.capacity);
         return *this;
     }
 
     using Handle = RobindHoodHandlerWrapper&;
     Handle get_handle() {
-        auto *wrapper = new RobindHoodHandlerWrapper(manager.GetThreadHandler());
+        if(!handler_out){
+            handler_out = true;
+        }
+        auto *wrapper = new RobindHoodHandlerWrapper(manager->GetThreadHandler());
         return *(wrapper);
+    }
+
+    ~RobinhoodWrapper(){
+        if(!handler_out){
+            delete manager; 
+        }
     }
 
 

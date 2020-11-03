@@ -18,6 +18,8 @@
 #include "utils/command_line_parser.hpp"
 #include "utils/output.hpp"
 #include "utils/test_util.h"
+
+#include "wrapper/robinhood_wrapper.h"
 #include "assert.h"
 
 
@@ -41,7 +43,7 @@ const static uint64_t range = (1ull << 62) -1;
 namespace otm = utils_tm::out_tm;
 namespace ttm = utils_tm::thread_tm;
 
-alignas(64) static HASHTYPE hash_table = HASHTYPE(0);
+static HASHTYPE * hash_table;
 alignas(64) static uint64_t* keys;
 alignas(64) static std::atomic_size_t current_block;
 alignas(64) static std::atomic_size_t errors;
@@ -177,9 +179,9 @@ struct test_in_stages
         for (size_t i = 0; i < it; ++i)
         {
             // STAGE 0.01
-            t.synchronized([cap](bool m)
-                           { if (m) hash_table = HASHTYPE(cap); return 0; },
-                           ThreadType::is_main);
+            t.synchronized(
+                    [cap] (bool m) { if (m) hash_table = new (std::align_val_t{ 64 }) HASHTYPE(cap); return 0; },
+                    ThreadType::is_main);
 
             t.out << otm::width(3) << i
                   << otm::width(3) << t.p
@@ -189,7 +191,7 @@ struct test_in_stages
 
             t.synchronize();
 
-            Handle hash = hash_table.get_handle();
+            Handle hash = hash_table->get_handle();
 
             // STAGE0.1 prefill table with pre elements
             {
@@ -234,11 +236,14 @@ struct test_in_stages
                 unsucc_deletes.store(0);
                 succ_found.store(0);
             }
+            RobindHoodHandlerWrapper::freeIfRobinhoodWrapper(hash);
+
         }
 
         if (ThreadType::is_main)
         {
             delete[] keys;
+            delete (hash_table);
         }
 
         return 0;
