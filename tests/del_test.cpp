@@ -205,7 +205,7 @@ struct test_in_stages
                 if (ThreadType::is_main) current_block.store(ws);
 
                 auto duration = t.synchronized(del_test_per_thread<Handle, ThreadType>,
-                                               t, hash, ws, n);
+                                               t, hash, ws, n+ws);
 
                 t.out << otm::width(10) << duration.second/1000000.;
             }
