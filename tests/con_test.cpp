@@ -14,6 +14,7 @@
 
 #include "data-structures/returnelement.h"
 
+#include "wrapper/robinhood_wrapper.h"
 #include "utils/default_hash.hpp"
 #include "utils/zipf_keygen.hpp"
 #include "utils/thread_coordination.hpp"
@@ -60,7 +61,6 @@ int generate_random(size_t n, dist_reader & reader)
         [n,  &prob, &reader](size_t s, size_t e)
         {
             std::mt19937_64 re(s*10293903128401092ull);
-
             reader.getSampleRange(s, e, keys);
 
         });
@@ -218,7 +218,7 @@ struct test_in_stages {
             t.synchronize();
 
             Handle hash = hash_table.get_handle();
-
+            RobindHoodHandlerWrapper::initIfRobinhoodWrapper(hash, t.p);
 
             // STAGE2 n Insertions [2 .. n+1]
             {
@@ -256,16 +256,12 @@ struct test_in_stages {
                 if (ThreadType::is_main) current_block.store(0);
 
 
-             //    auto duration = t.synchronized(val_update<Handle>, hash, n);
-
-
-             //   t.out << otm::width(10) << duration.second/1000000.
-                 t.out
-                      << otm::width(9)  << errors.load();
+                 t.out << otm::width(9)  << errors.load();
             }
 
             t.out << std::endl;
             if (ThreadType::is_main) errors.store(0);
+            RobindHoodHandlerWrapper::freeIfRobinhoodWrapper(hash);
         }
 
         if (ThreadType::is_main)
