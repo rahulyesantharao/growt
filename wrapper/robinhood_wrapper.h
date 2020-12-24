@@ -35,6 +35,13 @@ public:
         }
     }
 
+    template <class T>
+    static void initIfRobinhoodWrapper(T & obj, size_t num_threads){
+        if(isTypeRobinhood(obj)){
+            auto * r_wrapper = reinterpret_cast<RobindHoodHandlerWrapper*>(&obj);
+            r_wrapper->hash_->first_table_init(num_threads);
+        }
+    }
     inline iterator find(const key_type &k) {
         bool found;
         valtype v;
@@ -110,15 +117,15 @@ private:
 
     HashType * manager;
     size_t capacity;
-    bool handler_out;
 
 public:
 
 
     RobinhoodWrapper() = delete;
-    RobinhoodWrapper(size_t capacity_) : capacity(capacity_), handler_out(false) {
-        manager = new HashType(capacity);
+    RobinhoodWrapper(size_t capacity_) : capacity(capacity_) {
+        manager = new HashType(capacity, false);
     }
+
     RobinhoodWrapper(const RobinhoodWrapper&) = delete;
     RobinhoodWrapper& operator=(const RobinhoodWrapper&) = delete;
 
@@ -133,23 +140,18 @@ public:
             (manager)->~HashType();
         }
 
-        new (manager) HashType(rhs.capacity);
+        new (manager) HashType(rhs.capacity, false);
         return *this;
     }
 
     using Handle = RobindHoodHandlerWrapper&;
     Handle get_handle() {
-        if(!handler_out){
-            handler_out = true;
-        }
         auto *wrapper = new RobindHoodHandlerWrapper(manager->GetThreadHandler());
         return *(wrapper);
     }
 
     ~RobinhoodWrapper(){
-        if(!handler_out){
-            delete manager; 
-        }
+        delete manager;
     }
 
 
