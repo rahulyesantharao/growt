@@ -41,12 +41,11 @@ const static uint64_t range = (1ull << 62) -1;
 namespace otm = utils_tm::out_tm;
 namespace ttm = utils_tm::thread_tm;
 
-static HASHTYPE * hash_table;
 alignas(64) static uint64_t* keys;
 alignas(64) static std::atomic_size_t current_block;
 alignas(64) static std::atomic_size_t errors;
 
-
+alignas(64) static HASHTYPE hash_table = HASHTYPE(0);
 int generate_random(size_t n)
 {
     std::uniform_int_distribution<uint64_t> dis(2,range);
@@ -82,9 +81,9 @@ int fill(Hash& hash, size_t end)
             counter++;
             if (! hash.insert(key, i+2).second )
             {
-                printf("erro insert  \n");
+                //printf("erro insert  \n");
                 // Insertion failed? Possibly already inserted.
-                ++err;
+               // ++err;
 
             }
         });
@@ -168,11 +167,17 @@ struct test_in_stages
 
         for (size_t i = 0; i < it; ++i)
         {
+           t.synchronized([cap](bool m)
+                           { if (m) hash_table = HASHTYPE(cap); return 0; },
+                           ThreadType::is_main);
             // STAGE 0.1
-            t.synchronized(
-                [cap] (bool m) { if (m) hash_table = new (std::align_val_t{ 64 }) HASHTYPE(cap); return 0; },
-                ThreadType::is_main);
 
+
+            #ifdef ASK_INPUT
+                        t.synchronized(
+                                [cap] (bool m) { int j; if (m) std::cin >> j;   return 0; },
+                                ThreadType::is_main);
+            #endif
             t.out << otm::width(3) << i
                   << otm::width(3) << t.p
                   << otm::width(9) << n
@@ -180,9 +185,12 @@ struct test_in_stages
 
             t.synchronize();
 
-            Handle hash = hash_table->get_handle();
+            Handle hash = hash_table.get_handle();
 
+            t.synchronize();
+            RobindHoodHandlerWrapper::initIfRobinhoodWrapper(hash, t.p);
 
+            t.synchronize();
             // STAGE2 n Insertions
             {
                 if (ThreadType::is_main) current_block.store(0);
@@ -220,9 +228,11 @@ struct test_in_stages
             if (ThreadType::is_main) errors.store(0);
 
             RobindHoodHandlerWrapper::freeIfRobinhoodWrapper(hash);
-            if (ThreadType::is_main) delete (hash_table);
+
+
+
             // Some Synchronization
-            t.synchronize();
+         //   t.synchronize();
         }
 
         if (ThreadType::is_main)
