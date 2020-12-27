@@ -502,7 +502,6 @@ if (GROWT_BUILD_ROBINHOOD)
   RobinhoodExecutable( ROBINHOOD  con_test con con_full_robinhood )
   RobinhoodExecutable( ROBINHOOD  agg_test agg agg_full_robinhood )
   RobinhoodExecutable( ROBINHOOD  del_test del del_full_robinhood )
-  RobinhoodExecutable( ROBINHOOD  malloc_test malloc malloc_full_robinhood )
 endif()
 
 if (GROWT_BUILD_SKA)
