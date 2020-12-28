@@ -15,7 +15,7 @@
 	url = https://github.com/efficient/libcuckoo.git
 [submodule "utils"]
 	path = utils
-	url = https://github.com/TooBiased/utils_tm.git
+	url = git@github.com:ekahssay/util.git
 [submodule "misc/submodules/hashtable"]
 	path = misc/submodules/hashtable
 	url = git@github.com:rahulyesantharao/hashtable.git
