@@ -1,0 +1,8 @@
+
+echo $PERF_DEBUG
+
+cmake -DDEBUG_HASH=On -DPERF_DEBUG=Off -DREMOTE=Off -DDEBUG=On -DASSERT=On .
+make -j
+
+
+
