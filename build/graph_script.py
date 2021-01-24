@@ -182,6 +182,9 @@ for benchmark in args.benchmarks:
 ###################
 # Making Table
 ###################
+def format_col(col):
+    c = col.split("_")
+    return '\\_'.join(c)
 print("Making table line...")
 if args.table_outfile:
     single_core_index = THREAD_NUMS.index(1)
@@ -194,26 +197,30 @@ if args.table_outfile:
             f.write("\\hline\n")
             f.write("\\multicolumn{1}{|c|}{Configurations} ")
             for ID in args.tables:
+                if ID == "s":
+                    continue
                 f.write("& \\multicolumn{3}{c|}{"+ID_TO_TABLE[ID]+"} ")
             f.write("\\\\\n")
             f.write("\\cline{2-"+str(len(args.tables)*3-2)+"}\n")
             f.write("\\multicolumn{1}{|c|}{  } ")
             for ID in args.tables:
+                if ID == "s":
+                    continue
                 f.write("& RT & SU & SKA SU ")
             f.write("\\\\\n")
             f.write("\\hline\n")
 
         for benchmark in args.benchmarks:
             for col in BENCHMARK_TO_COLS[benchmark]:
-                line = "{}(n={}) ".format(col, args.num_elem)
+                line = "{}(n={}) ".format(format_col(col), args.num_elem)
                 ska_val = Y_VARS[benchmark][col]["ska"][0]
                 for ID in args.tables:
                     if ID == "s":
                         continue
                     row_data = Y_VARS[benchmark][col][ID_TO_TABLE[ID]]
-                    line += "& {} & {} & {} ".format(row_data[mult_core_index],
-                                                     row_data[single_core_index]/row_data[mult_core_index],
-                                                     ska_val/row_data[mult_core_index])
+                    line += "& {} & {} & {} ".format(round(row_data[mult_core_index],2),
+                                                     round(row_data[single_core_index]/row_data[mult_core_index],2),
+                                                     round(ska_val/row_data[mult_core_index],2))
                 """
                 line += "& {} ".format(Y_VARS[benchmark][col]["ska"][0]) # always serial
                 for ID in args.tables:
@@ -226,6 +233,8 @@ if args.table_outfile:
                 """
                 line += "\\\\\n"
                 f.write(line)
+
+        f.write("\\hline\n")
 
 
 
