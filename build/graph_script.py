@@ -22,9 +22,9 @@ parser.add_argument('-b', '--benchmarks', type=str, default='',
                     help='which benchmarks need to be run')
 parser.add_argument('-t', '--tables', type=str, default='frsgc',
                     help='tables that need to be graphed and benchmarked')
-parser.add_argument('-rp', '--range-num-threads', type=int, nargs=2, default=[],
+parser.add_argument('-rp', '--range-num-threads', type=int, nargs=2, default=None,
                     help='number of threads as a range, doubling')
-parser.add_argument('-lp', '--list-num-threads', type=int, nargs='+', default=[],
+parser.add_argument('-lp', '--list-num-threads', type=int, nargs='+', default=None,
                     help='number of threads, as a list')
 parser.add_argument('-n', '--num-elem', type=int, default=1,
                     help='number of elements to be inserted')
@@ -49,7 +49,7 @@ if args.range_num_threads:
 elif args.list_num_threads:
         THREAD_NUMS = args.list_num_threads
 else:
-        print("NO THREAD NUMS SPECIFIED")
+        print("ERROR:NO THREAD NUMS SPECIFIED")
 
 for benchmark in args.benchmarks:
         DATA[benchmark] = {}
@@ -59,6 +59,12 @@ for benchmark in args.benchmarks:
                         DATA[benchmark][col][ID_TO_TABLE[ID]] = {}
                         for num_threads in THREAD_NUMS:
                                 DATA[benchmark][col][ID_TO_TABLE[ID]][num_threads] = []
+
+print("Benchmarks:", [ID_TO_BENCHMARK[b] for b in args.benchmarks])
+print("Tables:", [ID_TO_TABLE[t] for t in args.tables])
+print("Number of Threads:", THREAD_NUMS)
+print("Number of Elements:", args.num_elem)
+print("Initial capacity:", args.capacity)
 
 ####################
 # Setting up scripts
