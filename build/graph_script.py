@@ -160,21 +160,21 @@ for benchmark in args.benchmarks:
                                 all_trials = DATA[benchmark][col][table][1]
                             else:
                                 all_trials = DATA[benchmark][col][table][p]
-                            val = np.array(all_trials).mean()
-                            Y_VARS[benchmark][col][table].append(val)
+                            val = np.array(all_trials[1:]).mean()
+                            Y_VARS[benchmark][col][table].append(np.log(val))
 
 for benchmark in args.benchmarks:
     for col in BENCHMARK_TO_COLS[benchmark]:
         for ID in args.tables:
             if ID == "s":
                 continue
-            plt.plot(x_vars, Y_VARS[benchmark][col][ID_TO_TABLE[ID]], c = ID_TO_COLOR[ID], label = ID_TO_TABLE[ID])
-            plt.scatter(x_vars, Y_VARS[benchmark][col][ID_TO_TABLE[ID]], c = ID_TO_COLOR[ID])
+            plt.plot(x_vars, Y_VARS[benchmark][col][ID_TO_TABLE[ID]],marker = 'o', c = ID_TO_COLOR[ID], label = ID_TO_TABLE[ID])
+            #plt.scatter(x_vars, Y_VARS[benchmark][col][ID_TO_TABLE[ID]], c = ID_TO_COLOR[ID])
         plt.xticks(THREAD_NUMS)
         plt.legend(loc='upper right')
         plt.title(ID_TO_TITLE[benchmark][col])
         plt.xlabel("Number of threads")
-        plt.ylabel("Runtime (miliseconds)")
+        plt.ylabel("log(Runtime) (miliseconds)")
         plt.savefig(ID_TO_BENCHMARK[benchmark]+"_"+col+'.png')
         plt.clf();
 
