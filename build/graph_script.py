@@ -63,14 +63,6 @@ elif args.list_num_threads:
 else:
         print("ERROR:NO THREAD NUMS SPECIFIED")
 
-for benchmark in args.benchmarks:
-        DATA[benchmark] = {}
-        for col in BENCHMARK_TO_COLS[benchmark]:
-                DATA[benchmark][col] = {}
-                for ID in args.tables:
-                        DATA[benchmark][col][ID_TO_TABLE[ID]] = {}
-                        for num_threads in THREAD_NUMS:
-                                DATA[benchmark][col][ID_TO_TABLE[ID]][num_threads] = []
 
 print("Benchmarks:", [ID_TO_BENCHMARK[b] for b in args.benchmarks])
 print("Tables:", [ID_TO_TABLE[t] for t in args.tables])
@@ -80,6 +72,15 @@ print("Initial capacity:", args.capacity)
 
 # add ska, just to find relative speedup
 args.tables += "s"
+
+for benchmark in args.benchmarks:
+        DATA[benchmark] = {}
+        for col in BENCHMARK_TO_COLS[benchmark]:
+                DATA[benchmark][col] = {}
+                for ID in args.tables:
+                        DATA[benchmark][col][ID_TO_TABLE[ID]] = {}
+                        for num_threads in THREAD_NUMS:
+                                DATA[benchmark][col][ID_TO_TABLE[ID]][num_threads] = []
 
 ####################
 # Setting up scripts
@@ -183,8 +184,8 @@ for benchmark in args.benchmarks:
 ###################
 print("Making table line...")
 if args.table_outfile:
-    single_core_index = THREAD_NUMS.find(1)
-    mult_core_index = THREAD_NUMS.find(args.table_max_core)
+    single_core_index = THREAD_NUMS.index(1)
+    mult_core_index = THREAD_NUMS.index(args.table_max_core)
     with open(args.table_outfile, 'a') as f:
         if args.write_header:
             f.write("\\begin{tabular}{|l|"+("c|"*(len(args.tables)-1)*3)+"}\n")
@@ -209,7 +210,7 @@ if args.table_outfile:
                 for ID in args.tables:
                     if ID == "s":
                         continue
-                    row_data = Y_VARS[benchmark][col][ID_TABLE[ID]]
+                    row_data = Y_VARS[benchmark][col][ID_TO_TABLE[ID]]
                     line += "& {} & {} & {} ".format(row_data[mult_core_index],
                                                      row_data[single_core_index]/row_data[mult_core_index],
                                                      ska_val/row_data[mult_core_index])
