@@ -63,6 +63,7 @@ for benchmark in args.benchmarks:
 ####################
 # Setting up scripts
 ####################
+print("Making scripts...")
 for benchmark in args.benchmarks:
 	# remove previous versions of the script
 	subprocess.run(["rm", ID_TO_BENCHMARK[benchmark]+".sh"])
@@ -87,6 +88,7 @@ for benchmark in args.benchmarks:
 ####################
 # Running benchmarks
 ####################
+print("Running scripts...")
 for benchmark in args.benchmarks:
 	os.system("./"+ID_TO_BENCHMARK[benchmark]+".sh > "+ID_TO_BENCHMARK[benchmark]+".out")
 
@@ -100,6 +102,7 @@ def get_data(raw_line, header):
 		data[header[i]] = line[i]
 	return data
 
+print("Parsing output...")
 for benchmark in args.benchmarks:
 	with open(ID_TO_BENCHMARK[benchmark]+".out") as f:
 		current_table = ""
@@ -109,7 +112,7 @@ for benchmark in args.benchmarks:
 				current_table = line.split()[1]
 			elif line.startswith(" #i"):
 				current_header = line.split()
-			else:
+                        elif len(current_header) == len(line.split()):
 				data = get_data(line, current_header)
 				for col in BENCHMARK_TO_COLS[benchmark]:
 					DATA[benchmark][col][current_table][int(data["p"])].append(float(data[col]))
@@ -117,6 +120,7 @@ for benchmark in args.benchmarks:
 ###################
 # Graphing Results
 ###################
+print("Graphing output...")
 x_vars = THREAD_NUMS
 Y_VARS = {}
 for benchmark in args.benchmarks:
