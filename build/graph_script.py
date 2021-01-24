@@ -42,6 +42,12 @@ parser.add_argument('-stream', '--stream-size', type=int, default=40000000,
                     help='stream size used for mix test')
 parser.add_argument('-wperc', '--wperc', type=float, default=0.1,
                     help='stream size used for mix test')
+parser.add_argument('-to', '--table-outfile', type=str, default=None,
+                    help='outfile used to store latex code of table')
+parser.add_argument('-tmc', '--table-max-core', type=int, default=4,
+                    help='# of cores to compare serial time with')
+parser.add_argument('-wh', '--write-header', type=bool, default=False,
+                    help='write latex table header as well')
 args = parser.parse_args()
 
 #####################
@@ -161,8 +167,8 @@ for benchmark in args.benchmarks:
         for ID in args.tables:
             if ID == "s":
                 continue
-            plt.plot(x_vars, Y_VARS["i"]["t_ins"][ID_TO_TABLE[ID]], c = ID_TO_COLOR[ID], label = ID_TO_TABLE[ID])
-            plt.scatter(x_vars, Y_VARS["i"]["t_ins"][ID_TO_TABLE[ID]], c = ID_TO_COLOR[ID])
+            plt.plot(x_vars, Y_VARS[benchmark][col][ID_TO_TABLE[ID]], c = ID_TO_COLOR[ID], label = ID_TO_TABLE[ID])
+            plt.scatter(x_vars, Y_VARS[benchmark][col][ID_TO_TABLE[ID]], c = ID_TO_COLOR[ID])
         plt.xticks(THREAD_NUMS)
         plt.legend(loc='upper right')
         plt.title(ID_TO_TITLE[benchmark][col])
@@ -172,9 +178,53 @@ for benchmark in args.benchmarks:
         plt.clf();
 
 
+###################
+# Making Table
+###################
+print("Making table line...")
+if args.table_outfile:
+    single_core_index = THREAD_NUMS.find(1)
+    mult_core_index = THREAD_NUMS.find(args.table_max_core)
+    with open(args.table_outfile, 'a') as f:
+        if args.write_header:
+            f.write("\\begin{tabular}{|l|"+("c|"*(len(args.tables)-1)*3)+"}\n")
+            f.write("\\hline\n")
+            f.write("\\multicolumn{"+str(3*len(args.tables)-2)+"}{|c|}{Name of Table} \\\\\n")
+            f.write("\\hline\n")
+            f.write("\\multicolumn{1}{|c|}{Configurations} ")
+            for ID in args.tables:
+                f.write("& \\multicolumn{3}{c|}{"+ID_TO_TABLE[ID]+"} ")
+            f.write("\\\\\n")
+            f.write("\\cline{2-"+str(len(args.tables)*3-2)+"}\n")
+            f.write("\\multicolumn{1}{|c|}{  } ")
+            for ID in args.tables:
+                f.write("& RT & SU & SKA SU ")
+            f.write("\\\\\n")
+            f.write("\\hline\n")
 
-
-
+        for benchmark in args.benchmarks:
+            for col in BENCHMARK_TO_COLS[benchmark]:
+                line = "{}(n={}) ".format(col, args.num_elem)
+                ska_val = Y_VARS[benchmark][col]["ska"][0]
+                for ID in args.tables:
+                    if ID == "s":
+                        continue
+                    row_data = Y_VARS[benchmark][col][ID_TABLE[ID]]
+                    line += "& {} & {} & {} ".format(row_data[mult_core_index],
+                                                     row_data[single_core_index]/row_data[mult_core_index],
+                                                     ska_val/row_data[mult_core_index])
+                """
+                line += "& {} ".format(Y_VARS[benchmark][col]["ska"][0]) # always serial
+                for ID in args.tables:
+                    if ID == "s":
+                        continue
+                    row_data = Y_VARS[benchmark][col][ID_TABLE[ID]]
+                    line += "& {} & {} & {} ".format(row_data[single_core_index],
+                                                     row_data[mult_core_index],
+                                                     row_data[single_core_index]/row_data[mult_core_index])
+                """
+                line += "\\\\\n"
+                f.write(line)
 
 
 
