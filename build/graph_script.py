@@ -5,10 +5,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 ID_TO_TABLE = {'f':'folly', 'c':'cuckoo', 'r':'robinhood', 's':'ska', 'g':'paGrowT'}
+ID_TO_COLOR = {'f':'b', 'c':'m', 'r':'g', 's':'y', 'g':'c'}
 ID_TO_BENCHMARK = {'i': "ins_benchmark", 'd': "del_benchmark", 'm': "mix_benchmark"}
 THREAD_NUMS = []
 DATA = {}
-BENCHMARK_TO_COLS = {"i":["t_ins","t_find_-","t_find_+"], "d":["t_del","t_val"], "m":[]}
+BENCHMARK_TO_COLS = {"i":["t_ins","t_find_-","t_find_+"], "d":["t_del"], "m":["t_mix"]}
+ID_TO_TITLE = {'i': {"t_ins":"Runtime of Concurrent Inserts",
+                     "t_find_-": "Runtime of Finding Nonexistant Keys",
+                     "t_find_+": "Runtime of Finding Existant Keys"},
+               'd': {"t_del": "Runtime of Concurrent Deletes"},
+               'm': {"t_mix": "Runtime of Mixed Concurrent Operations"}}
 
 ins_benchmark_exec_cmd = "./ins/ins_full_{} -n {} -p {} -it {};"
 del_benchmark_exec_cmd = "./del/del_full_{} -n {} -p {} -it {};"
@@ -20,7 +26,7 @@ mix_benchmark_exec_cmd = "./mix/mix_full_{} -n {} -c {} -stream {} -p {} -it {} 
 parser = argparse.ArgumentParser(description='Parsing parameters to run and graph benchmarks')
 parser.add_argument('-b', '--benchmarks', type=str, default='',
                     help='which benchmarks need to be run')
-parser.add_argument('-t', '--tables', type=str, default='frsgc',
+parser.add_argument('-t', '--tables', type=str, default='frgc',
                     help='tables that need to be graphed and benchmarked')
 parser.add_argument('-rp', '--range-num-threads', type=int, nargs=2, default=None,
                     help='number of threads as a range, doubling')
@@ -66,6 +72,9 @@ print("Number of Threads:", THREAD_NUMS)
 print("Number of Elements:", args.num_elem)
 print("Initial capacity:", args.capacity)
 
+# add ska, just to find relative speedup
+args.tables += "s"
+
 ####################
 # Setting up scripts
 ####################
@@ -78,6 +87,8 @@ for benchmark in args.benchmarks:
                         table = ID_TO_TABLE[ID]
                         f.write("echo TABLE: {};\n".format(table))
                         for num_threads in THREAD_NUMS:
+                                if ID == "s" and num_threads > 1:
+                                    continue
                                 if benchmark == "i":
                                         f.write(ins_benchmark_exec_cmd.format(table, args.num_elem,
                                                                                                                   num_threads, args.iterations))
@@ -137,13 +148,28 @@ for benchmark in args.benchmarks:
                         table = ID_TO_TABLE[ID]
                         Y_VARS[benchmark][col][table] = []
                         for p in THREAD_NUMS:
-                                all_trials = DATA[benchmark][col][current_table][p]
-                                val = np.array(all_trials).mean()
-                                Y_VARS[benchmark][col][table].append(val)
+                            all_trials = {}
+                            if ID == "s":
+                                all_trials = DATA[benchmark][col][table][1]
+                            else:
+                                all_trials = DATA[benchmark][col][table][p]
+                            val = np.array(all_trials).mean()
+                            Y_VARS[benchmark][col][table].append(val)
 
-for ID in args.tables:
-        plt.plot(x_vars, Y_VARS["i"]["t_ins"][ID_TO_TABLE[ID]])
-#plt.savefig('foo.png')
+for benchmark in args.benchmarks:
+    for col in BENCHMARK_TO_COLS[benchmark]:
+        for ID in args.tables:
+            if ID == "s":
+                continue
+            plt.plot(x_vars, Y_VARS["i"]["t_ins"][ID_TO_TABLE[ID]], c = ID_TO_COLOR[ID], label = ID_TO_TABLE[ID])
+            plt.scatter(x_vars, Y_VARS["i"]["t_ins"][ID_TO_TABLE[ID]], c = ID_TO_COLOR[ID])
+        plt.xticks(THREAD_NUMS)
+        plt.legend(loc='upper right')
+        plt.title(ID_TO_TITLE[benchmark][col])
+        plt.xlabel("Number of threads")
+        plt.ylabel("Runtime (miliseconds)")
+        plt.savefig(ID_TO_BENCHMARK[benchmark]+"_"+col+'.png')
+        plt.clf();
 
 
 
