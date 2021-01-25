@@ -72,7 +72,9 @@ print("Number of Elements:", args.num_elem)
 print("Initial capacity:", args.capacity)
 
 # add ska, just to find relative speedup
-args.tables += "s"
+if 1 in THREAD_NUMS: 
+    args.tables += "s"
+
 args.iterations += 1
 
 for benchmark in args.benchmarks:
