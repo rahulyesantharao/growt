@@ -4,9 +4,10 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-ID_TO_TABLE = {'f':'folly', 'c':'cuckoo', 'r':'robinhood', 's':'ska', 'g':'paGrowT'}
-ID_TO_COLOR = {'f':'b', 'c':'m', 'r':'g', 's':'y', 'g':'c'}
-ID_TO_MARKER = {'f':'o', 'c':'v', 'r':'P', 's':'D', 'g':'*'}
+ID_TO_TABLE = {'f':'folly', 'c':'cuckoo', 'r':'robinhood', 's':'ska', 'sg':'usGrowT', 'ag': 'uaGrowT', 'th': 'TBBhm', 'tu':'TBBum'}
+TREAT_SAME = {{'ag', 'sg'}}
+ID_TO_COLOR = {'f':'b', 'c':'m', 'r':'g', 's':'y', 'sg':'c', 'ag':'r', 'th': 'purple', 'tu':'hotpink'}
+ID_TO_MARKER = {'f':'o', 'c':'v', 'r':'P', 's':'D', 'sg':'*','ag':'X', 'th':'+', 'tu': 'H'}
 ID_TO_BENCHMARK = {'i': "ins_benchmark", 'd': "del_benchmark", 'm': "mix_benchmark"}
 THREAD_NUMS = []
 DATA = {}
@@ -15,7 +16,7 @@ ID_TO_TITLE = {'i': {"t_ins":"Runtime of Concurrent Inserts",
                      "t_find_-": "Runtime of Finding Nonexistant Keys",
                      "t_find_+": "Runtime of Finding Existant Keys"},
                'd': {"t_del": "Runtime of Concurrent Deletes"},
-               'm': {"t_mix": "Runtime of Mixed Concurrent Operations"}}
+               'm': {"t_mix": "Runtime of Mixed Concurrent Operations"},}
 
 ins_benchmark_exec_cmd = "./ins/ins_full_{} -n {} -p {} -it {};"
 del_benchmark_exec_cmd = "./del/del_full_{} -n {} -p {} -it {};"
@@ -27,8 +28,8 @@ mix_benchmark_exec_cmd = "./mix/mix_full_{} -n {} -c {} -stream {} -p {} -it {} 
 parser = argparse.ArgumentParser(description='Parsing parameters to run and graph benchmarks')
 parser.add_argument('-b', '--benchmarks', type=str, default='',
                     help='which benchmarks need to be run')
-parser.add_argument('-t', '--tables', type=str, default='frgc',
-                    help='tables that need to be graphed and benchmarked')
+parser.add_argument('-t', '--tables', type=str, default='frgc', nargs='+', 
+                    help='tables that need to be graphed and benchmarked')                    
 parser.add_argument('-rp', '--range-num-threads', type=int, nargs=2, default=None,
                     help='number of threads as a range, doubling')
 parser.add_argument('-lp', '--list-num-threads', type=int, nargs='+', default=None,
@@ -187,7 +188,7 @@ for benchmark in args.benchmarks:
             plt.plot(x_vars, Y_VARS[benchmark][col][ID_TO_TABLE[ID]],marker = ID_TO_MARKER[ID], c = ID_TO_COLOR[ID], label = ID_TO_TABLE[ID])
             #plt.scatter(x_vars, Y_VARS[benchmark][col][ID_TO_TABLE[ID]], c = ID_TO_COLOR[ID])
         plt.xticks(THREAD_NUMS)
-        plt.legend(loc='upper right')
+        plt.legend(loc='upper left')
         plt.title(ID_TO_TITLE[benchmark][col])
         plt.xlabel("Number of threads")
         plt.ylabel("Throughput (MOps/sec)")
