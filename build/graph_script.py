@@ -153,9 +153,9 @@ for benchmark in args.benchmarks:
                                 data = get_data(line, current_header)
                                 for col in BENCHMARK_TO_COLS[benchmark]:
                                         if benchmark == "m":
-                                            DATA[benchmark][col][current_table][int(data["p"])].append(args.stream_size*1000/float(data[col]))
+                                            DATA[benchmark][col][current_table][int(data["p"])].append(args.stream_size/(1000*float(data[col])))
                                         else:
-                                            DATA[benchmark][col][current_table][int(data["p"])].append(args.num_elem*1000/float(data[col]))
+                                            DATA[benchmark][col][current_table][int(data["p"])].append(args.num_elem/(1000*float(data[col])))
 
 ###################
 # Graphing Results
@@ -190,7 +190,7 @@ for benchmark in args.benchmarks:
         plt.legend(loc='upper right')
         plt.title(ID_TO_TITLE[benchmark][col])
         plt.xlabel("Number of threads")
-        plt.ylabel("Throughput (op/sec)")
+        plt.ylabel("Throughput (MOps/sec)")
         plt.savefig(dirName+'//'+ID_TO_BENCHMARK[benchmark]+"_"+col+'.png')
         plt.clf();
 
