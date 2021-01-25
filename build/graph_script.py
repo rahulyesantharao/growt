@@ -164,7 +164,7 @@ for benchmark in args.benchmarks:
                                 all_trials = DATA[benchmark][col][table][1]
                             else:
                                 all_trials = DATA[benchmark][col][table][p]
-                            val = np.array(all_trials[1:]).mean()
+                            val = np.array(all_trials[1:]).median()
                             Y_VARS[benchmark][col][table].append(val)
 
 for benchmark in args.benchmarks:
