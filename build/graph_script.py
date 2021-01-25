@@ -141,7 +141,10 @@ for benchmark in args.benchmarks:
                         elif len(current_header) == len(line.split()):
                                 data = get_data(line, current_header)
                                 for col in BENCHMARK_TO_COLS[benchmark]:
-                                        DATA[benchmark][col][current_table][int(data["p"])].append(float(data[col]))
+                                        if benchmark == "m":
+                                            DATA[benchmark][col][current_table][int(data["p"])].append(args.stream_size/float(data[col]))
+                                        else:
+                                            DATA[benchmark][col][current_table][int(data["p"])].append(args.num_elem/float(data[col]))
 
 ###################
 # Graphing Results
