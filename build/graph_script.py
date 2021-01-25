@@ -71,11 +71,20 @@ print("Number of Threads:", THREAD_NUMS)
 print("Number of Elements:", args.num_elem)
 print("Initial capacity:", args.capacity)
 
+dirName = 'resultsr'
+try:
+    # Create target Directory
+    os.mkdir(dirName)
+    print("Directory " , dirName ,  " Created ") 
+except OSError as e:
+    pass
+
 # add ska, just to find relative speedup
 if 1 in THREAD_NUMS: 
     args.tables += "s"
 
 args.iterations += 1
+
 
 for benchmark in args.benchmarks:
         DATA[benchmark] = {}
@@ -164,7 +173,7 @@ for benchmark in args.benchmarks:
                                 all_trials = DATA[benchmark][col][table][1]
                             else:
                                 all_trials = DATA[benchmark][col][table][p]
-                            val = np.array(all_trials[1:]).median()
+                            val = np.median(np.array(all_trials[1:]))
                             Y_VARS[benchmark][col][table].append(val)
 
 for benchmark in args.benchmarks:
@@ -179,7 +188,7 @@ for benchmark in args.benchmarks:
         plt.title(ID_TO_TITLE[benchmark][col])
         plt.xlabel("Number of threads")
         plt.ylabel("Runtime (miliseconds)")
-        plt.savefig(ID_TO_BENCHMARK[benchmark]+"_"+col+'.png')
+        plt.savefig(dirName+'//'+ID_TO_BENCHMARK[benchmark]+"_"+col+'.png')
         plt.clf();
 
 
