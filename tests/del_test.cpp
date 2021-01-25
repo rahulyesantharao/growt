@@ -221,7 +221,8 @@ struct test_in_stages
                                                hash, ws+n);
 
                 t.out << otm::width(10) << duration.second/1000000.
-                      << otm::width(7)  << unsucc_deletes.load()
+                //TODO: look into adding back
+                //      << otm::width(7)  << unsucc_deletes.load()
                       << otm::width(7)  << succ_found.load()
                       << otm::width(7)  << errors.load();
             }
@@ -271,7 +272,7 @@ int main(int argn, char** argc)
                << otm::width(9)  << "w_size"
                << otm::width(10) << "t_del"
                << otm::width(10) << "t_val"
-               << otm::width(7)  << "unsucc"
+                //<< otm::width(7)  << "unsucc"
                << otm::width(7) << "remain"
                << otm::width(7)  << "errors"
                << std::endl;
