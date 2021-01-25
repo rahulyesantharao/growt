@@ -6,6 +6,7 @@ import numpy as np
 
 ID_TO_TABLE = {'f':'folly', 'c':'cuckoo', 'r':'robinhood', 's':'ska', 'g':'paGrowT'}
 ID_TO_COLOR = {'f':'b', 'c':'m', 'r':'g', 's':'y', 'g':'c'}
+ID_TO_MARKER = {'f':'o', 'c':'v', 'r':'P', 's':'D', 'g':'*'}
 ID_TO_BENCHMARK = {'i': "ins_benchmark", 'd': "del_benchmark", 'm': "mix_benchmark"}
 THREAD_NUMS = []
 DATA = {}
@@ -72,6 +73,7 @@ print("Initial capacity:", args.capacity)
 
 # add ska, just to find relative speedup
 args.tables += "s"
+args.iterations += 1
 
 for benchmark in args.benchmarks:
         DATA[benchmark] = {}
@@ -161,20 +163,20 @@ for benchmark in args.benchmarks:
                             else:
                                 all_trials = DATA[benchmark][col][table][p]
                             val = np.array(all_trials[1:]).mean()
-                            Y_VARS[benchmark][col][table].append(np.log(val))
+                            Y_VARS[benchmark][col][table].append(val)
 
 for benchmark in args.benchmarks:
     for col in BENCHMARK_TO_COLS[benchmark]:
         for ID in args.tables:
             if ID == "s":
                 continue
-            plt.plot(x_vars, Y_VARS[benchmark][col][ID_TO_TABLE[ID]],marker = 'o', c = ID_TO_COLOR[ID], label = ID_TO_TABLE[ID])
+            plt.plot(x_vars, Y_VARS[benchmark][col][ID_TO_TABLE[ID]],marker = ID_TO_MARKER[ID], c = ID_TO_COLOR[ID], label = ID_TO_TABLE[ID])
             #plt.scatter(x_vars, Y_VARS[benchmark][col][ID_TO_TABLE[ID]], c = ID_TO_COLOR[ID])
         plt.xticks(THREAD_NUMS)
         plt.legend(loc='upper right')
         plt.title(ID_TO_TITLE[benchmark][col])
         plt.xlabel("Number of threads")
-        plt.ylabel("log(Runtime) (miliseconds)")
+        plt.ylabel("Runtime (miliseconds)")
         plt.savefig(ID_TO_BENCHMARK[benchmark]+"_"+col+'.png')
         plt.clf();
 
