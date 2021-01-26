@@ -28,8 +28,8 @@ mix_benchmark_exec_cmd = "./mix/mix_full_{} -n {} -c {} -stream {} -p {} -it {} 
 parser = argparse.ArgumentParser(description='Parsing parameters to run and graph benchmarks')
 parser.add_argument('-b', '--benchmarks', type=str, default='',
                     help='which benchmarks need to be run')
-parser.add_argument('-t', '--tables', type=str, default='frgc', nargs='+', 
-                    help='tables that need to be graphed and benchmarked')                    
+parser.add_argument('-t', '--tables', type=str, default='frgc', nargs='+',
+                    help='tables that need to be graphed and benchmarked')
 parser.add_argument('-rp', '--range-num-threads', type=int, nargs=2, default=None,
                     help='number of threads as a range, doubling')
 parser.add_argument('-lp', '--list-num-threads', type=int, nargs='+', default=None,
@@ -49,6 +49,8 @@ parser.add_argument('-to', '--table-outfile', type=str, default=None,
 parser.add_argument('-tmc', '--table-max-core', type=int, default=4,
                     help='# of cores to compare serial time with')
 parser.add_argument('-wh', '--write-header', type=bool, default=False,
+                    help='write latex table header as well')
+parser.add_argument('-rf', '--read-from-file', type=bool, default=False,
                     help='write latex table header as well')
 args = parser.parse_args()
 
@@ -76,7 +78,7 @@ dirName = 'resultsr'
 try:
     # Create target Directory
     os.mkdir(dirName)
-    print("Directory " , dirName ,  " Created ") 
+    print("Directory " , dirName ,  " Created ")
 except OSError as e:
     pass
 
@@ -96,39 +98,44 @@ for benchmark in args.benchmarks:
                         for num_threads in THREAD_NUMS:
                                 DATA[benchmark][col][ID_TO_TABLE[ID]][num_threads] = []
 
+if not args.read_from_file:
 ####################
 # Setting up scripts
 ####################
-print("Making scripts...")
-for benchmark in args.benchmarks:
-        # remove previous versions of the script
-        subprocess.run(["rm", ID_TO_BENCHMARK[benchmark]+".sh"])
-        with open(ID_TO_BENCHMARK[benchmark]+".sh", "a") as f:
-                for ID in args.tables:
-                        table = ID_TO_TABLE[ID]
-                        f.write("echo TABLE: {};\n".format(table))
-                        for num_threads in THREAD_NUMS:
-                                if ID == "s" and num_threads > 1:
-                                    continue
-                                if benchmark == "i":
-                                        f.write(ins_benchmark_exec_cmd.format(table, args.num_elem,
-                                                                                                                  num_threads, args.iterations))
-                                elif benchmark == "d":
-                                        f.write(del_benchmark_exec_cmd.format(table, args.num_elem,
-                                                                                                                  num_threads, args.iterations))
-                                elif benchmark == "m":
-                                        f.write(mix_benchmark_exec_cmd.format(table, args.num_elem, args.capacity,
-                                                                                                                  args.stream_size, num_threads,
-                                                                                                              args.iterations, args.wperc))
-                                f.write("\n")
-        subprocess.run(["chmod", "+x", ID_TO_BENCHMARK[benchmark]+".sh"])
+    print("Making scripts...")
+    for benchmark in args.benchmarks:
+            # remove previous versions of the script
+            subprocess.run(["rm", ID_TO_BENCHMARK[benchmark]+".sh"])
+            with open(ID_TO_BENCHMARK[benchmark]+".sh", "a") as f:
+                    for ID in args.tables:
+                            table = ID_TO_TABLE[ID]
+                            f.write("echo TABLE: {};\n".format(table))
+                            for num_threads in THREAD_NUMS:
+                                    if ID == "s" and num_threads > 1:
+                                        continue
+                                    if benchmark == "i":
+                                            f.write(ins_benchmark_exec_cmd.format(table, args.num_elem,
+                                                                                                                      num_threads, args.iterations))
+                                    elif benchmark == "d":
+                                            f.write(del_benchmark_exec_cmd.format(table, args.num_elem,
+                                                                                                                      num_threads, args.iterations))
+                                    elif benchmark == "m":
+                                            f.write(mix_benchmark_exec_cmd.format(table, args.num_elem, args.capacity,
+                                                                                                                      args.stream_size, num_threads,
+                                                                                                                  args.iterations, args.wperc))
+                                    f.write("\n")
+            subprocess.run(["chmod", "+x", ID_TO_BENCHMARK[benchmark]+".sh"])
 
 ####################
 # Running benchmarks
 ####################
-print("Running scripts...")
-for benchmark in args.benchmarks:
-        os.system("./"+ID_TO_BENCHMARK[benchmark]+".sh > "+ID_TO_BENCHMARK[benchmark]+".out")
+    print("Running scripts...")
+    for benchmark in args.benchmarks:
+            os.system("./"+ID_TO_BENCHMARK[benchmark]+".sh > "+ID_TO_BENCHMARK[benchmark]+".out")
+else:
+    print("Read from File enabled. Reading from...")
+    for benchmark in args.benchmarks:
+        print("\t"+ID_TO_BENCHMARK[benchmark]+".out")
 
 ###################
 # Parsing outputs
@@ -195,6 +202,31 @@ for benchmark in args.benchmarks:
         plt.savefig(dirName+'//'+ID_TO_BENCHMARK[benchmark]+"_"+col+'.png')
         plt.clf();
 
+########################
+# Comparing to Robinhood
+########################
+print("Comparing to Robinhood...")
+os.system("rm robinhood_cmp.out")
+with open("robinhood_cmp.out", "a") as f:
+    header = ["table_algo"]
+    for benchmark in args.benchmarks:
+        for col in BENCHMARK_TO_COLS[benchmark]:
+            header.append(col)
+    f.write('\t'.join(header))
+    f.write('\n')
+
+    for ID in args.tables:
+        if ID == "s":
+            continue
+        table = ID_TO_TABLE[ID]
+        line = [table]
+        for benchmark in args.benchmarks:
+            for col in BENCHMARK_TO_COLS[benchmark]:
+                line.append(str(Y_VARS[benchmark][col]["robinhood"][-1]/Y_VARS[benchmark][col][table][-1]))
+    f.write("\t".join(line))
+    f.write('\n')
+
+
 
 ###################
 # Making Table
@@ -202,10 +234,12 @@ for benchmark in args.benchmarks:
 def format_col(col):
     c = col.split("_")
     return '\\_'.join(c)
+
 print("Making table line...")
 if args.table_outfile:
     single_core_index = THREAD_NUMS.index(1)
     mult_core_index = THREAD_NUMS.index(args.table_max_core)
+    half_mult_core_index = THREAD_NUMS.index(args.table_max_core/2)
     with open(args.table_outfile, 'a') as f:
         if args.write_header:
             f.write("\\begin{tabular}{|l|"+("c|"*(len(args.tables)-1)*3)+"}\n")
@@ -223,7 +257,7 @@ if args.table_outfile:
             for ID in args.tables:
                 if ID == "s":
                     continue
-                f.write("& RT & SU & SKA SU ")
+                f.write("& T_{"+str(args.table_max_core/2)+"} & SU & SKA SU ")
             f.write("\\\\\n")
             f.write("\\hline\n")
 
@@ -235,9 +269,10 @@ if args.table_outfile:
                     if ID == "s":
                         continue
                     row_data = Y_VARS[benchmark][col][ID_TO_TABLE[ID]]
-                    line += "& {} & {} & {} ".format(round(row_data[mult_core_index],2),
-                                                     round(row_data[single_core_index]/row_data[mult_core_index],2),
-                                                     round(ska_val/row_data[mult_core_index],2))
+                    mult_val_to_use = max(row_data[mult_core_index], row_data[half_mult_core_index]) # get best thruput
+                    line += "& {} & {} & {} ".format(round(mult_val_to_use,2),
+                                                     round(row_data[single_core_index]/mult_val_to_use,2),
+                                                     round(ska_val/mult_val_to_use,2))
                 """
                 line += "& {} ".format(Y_VARS[benchmark][col]["ska"][0]) # always serial
                 for ID in args.tables:
