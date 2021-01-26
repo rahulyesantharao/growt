@@ -206,8 +206,9 @@ for benchmark in args.benchmarks:
 # Comparing to Robinhood
 ########################
 print("Comparing to Robinhood...")
-os.system("rm robinhood_cmp.out")
-with open("robinhood_cmp.out", "a") as f:
+os.system("rm robinhood_"+ID_TO_BENCHMARK[benchmark]+".out")
+
+with open("robinhood_"+ID_TO_BENCHMARK[benchmark]+".out", "a") as f:
     header = ["table_algo"]
     for benchmark in args.benchmarks:
         for col in BENCHMARK_TO_COLS[benchmark]:
