@@ -52,6 +52,8 @@ parser.add_argument('-wh', '--write-header', type=bool, default=False,
                     help='write latex table header as well')
 parser.add_argument('-rf', '--read-from-file', type=bool, default=False,
                     help='write latex table header as well')
+parser.add_argument('-tpc', '--max-tables-per-col', type=int, default=3,
+                    help='make algos to put per latex table')
 args = parser.parse_args()
 
 #####################
@@ -246,58 +248,60 @@ if args.table_outfile:
     half_mult_core_index = THREAD_NUMS.index(args.table_max_core/2)
     if -1 in [single_core_index, mult_core_index, half_mult_core_index]:
         print("ERROR: Core specified is missing!")
-    with open(args.table_outfile, 'a') as f:
-        if args.write_header:
-            f.write("\\begin{tabular}{|l|"+("c|"*(len(args.tables)-1)*4)+"}\n")
-            f.write("\\hline\n")
-            f.write("\\multicolumn{"+str(4*len(args.tables)-3)+"}{|c|}{Name of Table} \\\\\n")
-            f.write("\\hline\n")
-            f.write("\\multicolumn{1}{|c|}{Configurations} ")
-            for ID in args.tables:
-                if ID == "s":
-                    continue
-                f.write("& \\multicolumn{3}{c|}{"+ID_TO_TABLE[ID]+"} ")
-            f.write("\\\\\n")
-            f.write("\\cline{2-"+str(len(args.tables)*4-3)+"}\n")
-            f.write("\\multicolumn{1}{|c|}{  } ")
-            for ID in args.tables:
-                if ID == "s":
-                    continue
-                f.write("& T_{"+str(args.table_max_core/2)+"} & SU & SKA SU & RH SU ")
-            f.write("\\\\\n")
-            f.write("\\hline\n")
-
-        for benchmark in args.benchmarks:
-            for col in BENCHMARK_TO_COLS[benchmark]:
-                if benchmark != "m":
-                    line = "{}(n={}M) ".format(format_col(col), round(float(args.num_elem)/1000000,1))
-                else:
-                    line = "{}(n={}M, wperc={}) ".format(format_col(col), round(float(args.num_elem)/1000000,1), args.wperc)
-                ska_val = Y_VARS[benchmark][col]["ska"][0]
-                for ID in args.tables:
+    for table_id in range((len(args.tables)+args.max_tables_per_col+1)//args.max_tables_per_col):
+        with open(args.table_outfile+"_"+str(table_id), 'a') as f:
+            tables = args.tables[table_id*args.max_tables_per_col:min((table_id+1)*args.max_tables_per_col, len(args.tables))]
+            if args.write_header:
+                f.write("\\begin{tabular}{|l|"+("c|"*(len(tables)-1)*4)+"}\n")
+                f.write("\\hline\n")
+                f.write("\\multicolumn{"+str(4*len(tables)-3)+"}{|c|}{Name of Table} \\\\\n")
+                f.write("\\hline\n")
+                f.write("\\multicolumn{1}{|c|}{Configurations} ")
+                for ID in tables:
                     if ID == "s":
                         continue
-                    row_data = Y_VARS[benchmark][col][ID_TO_TABLE[ID]]
-                    rh_su = Y_VARS[benchmark][col]["robinhood"][mult_core_index]/row_data[mult_core_index]
-                    mult_val_to_use = max(row_data[mult_core_index], row_data[half_mult_core_index]) # get best thruput
-                    line += "& {} & {} & {} & {} ".format(round(mult_val_to_use,2),
-                                                          round(row_data[single_core_index]/mult_val_to_use,2),
-                                                          round(ska_val/mult_val_to_use,2),
-                                                          round(rh_su,2))
-                """
-                line += "& {} ".format(Y_VARS[benchmark][col]["ska"][0]) # always serial
-                for ID in args.tables:
+                    f.write("& \\multicolumn{3}{c|}{"+ID_TO_TABLE[ID]+"} ")
+                f.write("\\\\\n")
+                f.write("\\cline{2-"+str(len(tables)*4-3)+"}\n")
+                f.write("\\multicolumn{1}{|c|}{  } ")
+                for ID in tables:
                     if ID == "s":
                         continue
-                    row_data = Y_VARS[benchmark][col][ID_TABLE[ID]]
-                    line += "& {} & {} & {} ".format(row_data[single_core_index],
-                                                     row_data[mult_core_index],
-                                                     row_data[single_core_index]/row_data[mult_core_index])
-                """
-                line += "\\\\\n"
-                f.write(line)
+                    f.write("& T_{"+str(args.table_max_core/2)+"} & SU & SKA SU & RH SU ")
+                f.write("\\\\\n")
+                f.write("\\hline\n")
 
-        f.write("\\hline\n")
+            for benchmark in args.benchmarks:
+                for col in BENCHMARK_TO_COLS[benchmark]:
+                    if benchmark != "m":
+                        line = "{}(n={}M) ".format(format_col(col), round(float(args.num_elem)/1000000,1))
+                    else:
+                        line = "{}(n={}M, wperc={}) ".format(format_col(col), round(float(args.num_elem)/1000000,1), args.wperc)
+                    ska_val = Y_VARS[benchmark][col]["ska"][0]
+                    for ID in tables:
+                        if ID == "s":
+                            continue
+                        row_data = Y_VARS[benchmark][col][ID_TO_TABLE[ID]]
+                        mult_val_to_use = max(row_data[mult_core_index], row_data[half_mult_core_index]) # get best thruput
+                        rh_su = Y_VARS[benchmark][col]["robinhood"][mult_core_index]/mult_val_to_use
+                        line += "& {} & {} & {} & {} ".format(round(mult_val_to_use,2),
+                                                              round(row_data[single_core_index]/mult_val_to_use,2),
+                                                              round(ska_val/mult_val_to_use,2),
+                                                              round(rh_su,2))
+                    """
+                    line += "& {} ".format(Y_VARS[benchmark][col]["ska"][0]) # always serial
+                    for ID in args.tables:
+                        if ID == "s":
+                            continue
+                        row_data = Y_VARS[benchmark][col][ID_TABLE[ID]]
+                        line += "& {} & {} & {} ".format(row_data[single_core_index],
+                                                         row_data[mult_core_index],
+                                                         row_data[single_core_index]/row_data[mult_core_index])
+                    """
+                    line += "\\\\\n"
+                    f.write(line)
+
+            f.write("\\hline\n")
 
 
 
