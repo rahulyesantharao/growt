@@ -166,7 +166,6 @@ for benchmark in args.benchmarks:
                                             DATA[benchmark][col][current_table][int(data["p"])].append(args.stream_size/(1000*float(data[col])))
                                         else:
                                             DATA[benchmark][col][current_table][int(data["p"])].append(args.num_elem/(1000*float(data[col])))
-
 ###################
 # Graphing Results
 ###################
@@ -189,19 +188,25 @@ for benchmark in args.benchmarks:
                             val = np.median(np.array(all_trials[1:]))
                             Y_VARS[benchmark][col][table].append(val)
 
+def get_name(ID):
+    if ID == "r":
+        return "bolt"
+    return ID_TO_TABLE[ID]
+
 for benchmark in args.benchmarks:
     for col in BENCHMARK_TO_COLS[benchmark]:
         for ID in args.tables:
             if ID == "s":
                 continue
-            plt.plot(x_vars, Y_VARS[benchmark][col][ID_TO_TABLE[ID]],marker = ID_TO_MARKER[ID], c = ID_TO_COLOR[ID], label = ID_TO_TABLE[ID])
+            plt.plot(x_vars, Y_VARS[benchmark][col][ID_TO_TABLE[ID]],marker = ID_TO_MARKER[ID], c = ID_TO_COLOR[ID], label = get_name(ID))
             #plt.scatter(x_vars, Y_VARS[benchmark][col][ID_TO_TABLE[ID]], c = ID_TO_COLOR[ID])
+        plt.tight_layout(rect=[0,0,1,1])
         plt.xticks(THREAD_NUMS)
-        plt.legend(loc='upper left')
+        plt.legend(bbox_to_anchor=(1.01, 1), loc='upper left')
         plt.title(ID_TO_TITLE[benchmark][col])
         plt.xlabel("Number of threads")
         plt.ylabel("Throughput (MOps/sec)")
-        plt.savefig(dirName+'//'+ID_TO_BENCHMARK[benchmark]+"_"+col+'.png')
+        plt.savefig(dirName+'//'+ID_TO_BENCHMARK[benchmark]+"_"+col+'.png', bbox_inches="tight")
         plt.clf();
 
 ########################
@@ -226,9 +231,9 @@ with open(dirName+'//'+"robinhood_"+ID_TO_BENCHMARK[benchmark]+".out", "a") as f
         print(ID)
         for benchmark in args.benchmarks:
             for col in BENCHMARK_TO_COLS[benchmark]:
-                
+
                 line.append(str(round(Y_VARS[benchmark][col]["robinhood"][-1]/Y_VARS[benchmark][col][table][-1], 2)))
-                
+
         f.write("\t".join(line))
         f.write('\n')
 
@@ -252,22 +257,22 @@ if args.table_outfile:
         with open(args.table_outfile+"_"+str(table_id), 'a') as f:
             tables = args.tables[table_id*args.max_tables_per_col:min((table_id+1)*args.max_tables_per_col, len(args.tables))]
             if args.write_header:
-                f.write("\\begin{tabular}{|l|"+("c|"*(len(tables)-1)*4)+"}\n")
+                f.write("\\begin{tabular}{|l|"+("c|"*(len(tables)*4+1))+"}\n")
                 f.write("\\hline\n")
-                f.write("\\multicolumn{"+str(4*len(tables)-3)+"}{|c|}{Name of Table} \\\\\n")
+                f.write("\\multicolumn{"+str(len(tables)*4+1)+"}{|c|}{Name of Table} \\\\\n")
                 f.write("\\hline\n")
                 f.write("\\multicolumn{1}{|c|}{Configurations} ")
                 for ID in tables:
                     if ID == "s":
                         continue
-                    f.write("& \\multicolumn{3}{c|}{"+ID_TO_TABLE[ID]+"} ")
+                    f.write("& \\multicolumn{4}{c|}{"+get_name(ID)+"} ")
                 f.write("\\\\\n")
-                f.write("\\cline{2-"+str(len(tables)*4-3)+"}\n")
+                f.write("\\cline{2-"+str(len(tables)*4+1)+"}\n")
                 f.write("\\multicolumn{1}{|c|}{  } ")
                 for ID in tables:
                     if ID == "s":
                         continue
-                    f.write("& T_{"+str(args.table_max_core/2)+"} & SU & SKA SU & RH SU ")
+                    f.write("& T_{"+str(args.table_max_core//2)+"} & SU & SKA SU & RH SU ")
                 f.write("\\\\\n")
                 f.write("\\hline\n")
 
