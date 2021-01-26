@@ -217,15 +217,18 @@ with open("robinhood_"+ID_TO_BENCHMARK[benchmark]+".out", "a") as f:
     f.write('\n')
 
     for ID in args.tables:
-        if ID == "s":
+        if ID == "s" or ID == "r":
             continue
         table = ID_TO_TABLE[ID]
         line = [table]
+        print(ID)
         for benchmark in args.benchmarks:
             for col in BENCHMARK_TO_COLS[benchmark]:
+                
                 line.append(str(Y_VARS[benchmark][col]["robinhood"][-1]/Y_VARS[benchmark][col][table][-1]))
-    f.write("\t".join(line))
-    f.write('\n')
+                
+        f.write("\t".join(line))
+        f.write('\n')
 
 
 
