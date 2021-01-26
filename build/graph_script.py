@@ -290,8 +290,8 @@ if args.table_outfile:
                         mult_val_to_use = max(row_data[mult_core_index], row_data[half_mult_core_index]) # get best thruput
                         rh_su = Y_VARS[benchmark][col]["robinhood"][mult_core_index]/mult_val_to_use
                         line += "& {} & {} & {} & {} ".format(round(mult_val_to_use,2),
-                                                              round(row_data[single_core_index]/mult_val_to_use,2),
-                                                              round(ska_val/mult_val_to_use,2),
+                                                              round(mult_val_to_use/row_data[single_core_index],2),
+                                                              round(mult_val_to_use/ska_val,2),
                                                               round(rh_su,2))
                     """
                     line += "& {} ".format(Y_VARS[benchmark][col]["ska"][0]) # always serial
