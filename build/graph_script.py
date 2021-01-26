@@ -206,9 +206,9 @@ for benchmark in args.benchmarks:
 # Comparing to Robinhood
 ########################
 print("Comparing to Robinhood...")
-os.system("rm robinhood_"+ID_TO_BENCHMARK[benchmark]+".out")
+os.system("rm " + dirName+'//'+ "robinhood_"+ID_TO_BENCHMARK[benchmark]+".out")
 
-with open("robinhood_"+ID_TO_BENCHMARK[benchmark]+".out", "a") as f:
+with open(dirName+'//'+"robinhood_"+ID_TO_BENCHMARK[benchmark]+".out", "a") as f:
     header = ["table_algo"]
     for benchmark in args.benchmarks:
         for col in BENCHMARK_TO_COLS[benchmark]:
@@ -225,7 +225,7 @@ with open("robinhood_"+ID_TO_BENCHMARK[benchmark]+".out", "a") as f:
         for benchmark in args.benchmarks:
             for col in BENCHMARK_TO_COLS[benchmark]:
                 
-                line.append(str(Y_VARS[benchmark][col]["robinhood"][-1]/Y_VARS[benchmark][col][table][-1]))
+                line.append(str(round(Y_VARS[benchmark][col]["robinhood"][-1]/Y_VARS[benchmark][col][table][-1], 2)))
                 
         f.write("\t".join(line))
         f.write('\n')
