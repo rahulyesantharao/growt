@@ -4,10 +4,10 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 
-ID_TO_TABLE = {'f':'folly', 'c':'cuckoo', 'r':'robinhood', 's':'ska', 'sg':'usGrowT', 'ag': 'uaGrowT', 'th': 'TBBhm', 'tu':'TBBum', 'jg': 'junction_grampa', 'jl': 'junction_leap', 'ji':'junction_linear'}
+ID_TO_TABLE = {'f':'folly', 'fo': 'folklore', 'c':'cuckoo', 'r':'robinhood', 's':'ska', 'sg':'usGrowT', 'ag': 'uaGrowT', 'th': 'TBBhm', 'tu':'TBBum', 'jg': 'junction_grampa', 'jl': 'junction_leap', 'ji':'junction_linear'}
 #TREAT_SAME = {{'ag', 'sg'}}
-ID_TO_COLOR = {'f':'b', 'c':'m', 'r':'g', 's':'y', 'sg':'c', 'ag':'r', 'th': 'purple', 'tu':'hotpink', 'jg': 'orange', 'jl': 'gold', 'ji':'black'}
-ID_TO_MARKER = {'f':'o', 'c':'v', 'r':'P', 's':'D', 'sg':'*','ag':'X', 'th':'+', 'tu': 'H', 'jg': 'x', 'jl': '|', 'ji':'_'}
+ID_TO_COLOR = {'f':'b', 'c':'m', 'fo': 'blue', 'r':'g', 's':'y', 'sg':'c', 'ag':'r', 'th': 'purple', 'tu':'hotpink', 'jg': 'orange', 'jl': 'gold', 'ji':'black'}
+ID_TO_MARKER = {'f':'o', 'c':'v', 'fo': '1', 'r':'P', 's':'D', 'sg':'*','ag':'X', 'th':'+', 'tu': 'H', 'jg': 'x', 'jl': '|', 'ji':'_'}
 ID_TO_BENCHMARK = {'i': "ins_benchmark", 'd': "del_benchmark", 'm': "mix_benchmark"}
 THREAD_NUMS = []
 DATA = {}
@@ -51,6 +51,8 @@ parser.add_argument('-wperc', '--wperc', type=float, default=0.1,
                     help='stream size used for mix test')
 parser.add_argument('-to', '--table-outfile', type=str, default=None,
                     help='outfile used to store latex code of table')
+parser.add_argument('-rd', '--result-directory', type=str, default='resultsr',
+                    help='outfile used to store latex code of table')
 parser.add_argument('-tmc', '--table-max-core', type=int, default=4,
                     help='# of cores to compare serial time with')
 parser.add_argument('-wh', '--write-header', type=bool, default=False,
@@ -81,7 +83,8 @@ print("Number of Threads:", THREAD_NUMS)
 print("Number of Elements:", args.num_elem)
 print("Initial capacity:", args.capacity)
 
-dirName = 'resultsr'
+dirName = args.result_directory 
+
 try:
     # Create target Directory
     os.mkdir(dirName)
