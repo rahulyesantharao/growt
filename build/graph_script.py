@@ -18,13 +18,18 @@ ID_TO_TITLE = {'i': {"t_ins":"Runtime of Concurrent Inserts",
                'd': {"t_del": "Runtime of Concurrent Deletes"},
                'm': {"t_mix": "Runtime of Mixed Concurrent Operations"},}
 
-ins_benchmark_exec_cmd = "./ins/ins_full_{} -n {} -p {} -it {};"
+ins_benchmark_exec_cmd = "./ins/ins_full_{} -n {}  -p {} -it {};"
+
+ins_benchmark_c_exec_cmd = "./ins/ins_full_{} -n {} -c {} -p {} -it {};"
 del_benchmark_exec_cmd = "./del/del_full_{} -n {} -p {} -it {};"
 mix_benchmark_exec_cmd = "./mix/mix_full_{} -n {} -c {} -stream {} -p {} -it {} -wperc {};"
 
 ###################
 # Parsing arguments
 ###################
+
+default_cap = 1 
+
 parser = argparse.ArgumentParser(description='Parsing parameters to run and graph benchmarks')
 parser.add_argument('-b', '--benchmarks', type=str, default='',
                     help='which benchmarks need to be run')
@@ -36,7 +41,7 @@ parser.add_argument('-lp', '--list-num-threads', type=int, nargs='+', default=No
                     help='number of threads, as a list')
 parser.add_argument('-n', '--num-elem', type=int, default=1,
                     help='number of elements to be inserted')
-parser.add_argument('-c', '--capacity', type=int, default=8,
+parser.add_argument('-c', '--capacity', type=int, default=default_cap,
                     help='initial size of hashtable')
 parser.add_argument('-it', '--iterations', type=int, default=1,
                     help='number of iterations to run tests')
@@ -116,8 +121,10 @@ if not args.read_from_file:
                                     if ID == "s" and num_threads > 1:
                                         continue
                                     if benchmark == "i":
-                                            f.write(ins_benchmark_exec_cmd.format(table, args.num_elem,
-                                                                                                                      num_threads, args.iterations))
+                                            if args.capacity == default_cap : 
+                                                f.write(ins_benchmark_exec_cmd.format(table, args.num_elem, num_threads, args.iterations))
+                                            else: 
+                                                f.write(ins_benchmark_c_exec_cmd.format(table, args.num_elem, args.capacity, num_threads, args.iterations))    
                                     elif benchmark == "d":
                                             f.write(del_benchmark_exec_cmd.format(table, args.num_elem,
                                                                                                                       num_threads, args.iterations))
