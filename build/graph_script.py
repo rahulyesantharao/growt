@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 ID_TO_TABLE = {'f':'folly', 'fo': 'folklore', 'c':'cuckoo', 'r':'robinhood', 's':'ska', 'sg':'usGrowT', 'ag': 'uaGrowT', 'th': 'TBBhm', 'tu':'TBBum', 'jg': 'junction_grampa', 'jl': 'junction_leap', 'ji':'junction_linear'}
+ID_TO_TABLE_NAME = {'f':'folly', 'fo': 'folklore', 'c':'cuckoo', 'r':'Bolt', 's':'ska', 'sg':'usGrowt', 'ag': 'uaGrowt', 'th': 'TBBhm', 'tu':'TBBum', 'jg': 'junction_grampa', 'jl': 'junction_leap', 'ji':'junction_linear'}
 #TREAT_SAME = {{'ag', 'sg'}}
 ID_TO_COLOR = {'f':'b', 'c':'m', 'fo': 'blue', 'r':'g', 's':'y', 'sg':'c', 'ag':'r', 'th': 'purple', 'tu':'hotpink', 'jg': 'orange', 'jl': 'gold', 'ji':'black'}
 ID_TO_MARKER = {'f':'o', 'c':'v', 'fo': '1', 'r':'P', 's':'D', 'sg':'*','ag':'X', 'th':'+', 'tu': 'H', 'jg': 'x', 'jl': '|', 'ji':'_'}
@@ -172,10 +173,13 @@ for benchmark in args.benchmarks:
                         elif len(current_header) == len(line.split()):
                                 data = get_data(line, current_header)
                                 for col in BENCHMARK_TO_COLS[benchmark]:
+                                        op_per_event = 1 
+                                        if benchmark == "d": 
+                                            op_per_event = 2
                                         if benchmark == "m":
                                             DATA[benchmark][col][current_table][int(data["p"])].append(args.stream_size/(1000*float(data[col])))
                                         else:
-                                            DATA[benchmark][col][current_table][int(data["p"])].append(args.num_elem/(1000*float(data[col])))
+                                            DATA[benchmark][col][current_table][int(data["p"])].append(args.num_elem*op_per_event/(1000*float(data[col])))
 ###################
 # Graphing Results
 ###################
@@ -199,9 +203,7 @@ for benchmark in args.benchmarks:
                             Y_VARS[benchmark][col][table].append(val)
 
 def get_name(ID):
-    if ID == "r":
-        return "bolt"
-    return ID_TO_TABLE[ID]
+    return ID_TO_TABLE_NAME[ID]
 
 for benchmark in args.benchmarks:
     for col in BENCHMARK_TO_COLS[benchmark]:
@@ -210,14 +212,17 @@ for benchmark in args.benchmarks:
                 continue
             plt.plot(x_vars, Y_VARS[benchmark][col][ID_TO_TABLE[ID]],marker = ID_TO_MARKER[ID], c = ID_TO_COLOR[ID], label = get_name(ID))
             #plt.scatter(x_vars, Y_VARS[benchmark][col][ID_TO_TABLE[ID]], c = ID_TO_COLOR[ID])
-        plt.tight_layout(rect=[0,0,1,1])
+        plt.tight_layout(rect=[0,0,1.0,1])
+        #copy_thread_nums = THREAD_NUMS
+        #copy_thread_nums.remove(2)
+        #plt.xticks(copy_thread_nums)
         plt.xticks(THREAD_NUMS)
         plt.legend(bbox_to_anchor=(1.01, 1), loc='upper left')
-        plt.title(ID_TO_TITLE[benchmark][col])
+      #  plt.title(ID_TO_TITLE[benchmark][col])
         plt.xlabel("Number of threads")
         plt.ylabel("Throughput (MOps/sec)")
         plt.savefig(dirName+'//'+ID_TO_BENCHMARK[benchmark]+"_"+col+'.png', bbox_inches="tight")
-        plt.clf();
+        plt.clf()
 
 ########################
 # Comparing to Robinhood
@@ -247,7 +252,9 @@ with open(dirName+'//'+"robinhood_"+ID_TO_BENCHMARK[benchmark]+".out", "a") as f
         f.write("\t".join(line))
         f.write('\n')
 
-
+    #f.write("Speedup " + str(round(Y_VARS[benchmark][col]["robinhood"][-1]/Y_VARS[benchmark][col]["robinhood"][0], 2)))
+    
+    f.write("Absolute speedup" + str(round(Y_VARS[benchmark][col]["robinhood"][-1]/Y_VARS[benchmark][col]["ska"][0], 2)))
 
 ###################
 # Making Table
