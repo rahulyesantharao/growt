@@ -9,19 +9,22 @@ ID_TO_TABLE_NAME = {'f':'folly', 'fo': 'folklore', 'c':'cuckoo', 'r':'Bolt', 's'
 #TREAT_SAME = {{'ag', 'sg'}}
 ID_TO_COLOR = {'f':'b', 'c':'m', 'fo': 'blue', 'r':'g', 's':'y', 'sg':'c', 'ag':'r', 'th': 'purple', 'tu':'hotpink', 'jg': 'orange', 'jl': 'gold', 'ji':'black'}
 ID_TO_MARKER = {'f':'o', 'c':'v', 'fo': '1', 'r':'P', 's':'D', 'sg':'*','ag':'X', 'th':'+', 'tu': 'H', 'jg': 'x', 'jl': '|', 'ji':'_'}
-ID_TO_BENCHMARK = {'i': "ins_benchmark", 'd': "del_benchmark", 'm': "mix_benchmark"}
+ID_TO_BENCHMARK = {'i': "ins_benchmark", 'd': "del_benchmark", 'm': "mix_benchmark", 'c': "con_benchmark"}
 THREAD_NUMS = []
 DATA = {}
-BENCHMARK_TO_COLS = {"i":["t_ins","t_find_-","t_find_+"], "d":["t_del"], "m":["t_mix"]}
+BENCHMARK_TO_COLS = {"i":["t_ins","t_find_-","t_find_+"], "d":["t_del"], "m":["t_mix"], "c":["t_mix","t_updt_c"]}
 ID_TO_TITLE = {'i': {"t_ins":"Runtime of Concurrent Inserts",
                      "t_find_-": "Runtime of Finding Nonexistant Keys",
                      "t_find_+": "Runtime of Finding Existant Keys"},
                'd': {"t_del": "Runtime of Concurrent Deletes"},
-               'm': {"t_mix": "Runtime of Mixed Concurrent Operations"},}
+               'm': {"t_mix": "Runtime of Mixed Concurrent Operations"},
+               'c': {"t_mix": "Runtime of Mixed Concurrent Operations",
+                     "t_updt_c": "Runtime of Update Concurrent Operations"}}
 
 ins_benchmark_exec_cmd = "./ins/ins_full_{} -n {}  -p {} -it {};"
 
 ins_benchmark_c_exec_cmd = "./ins/ins_full_{} -n {} -c {} -p {} -it {};"
+con_benchmark_exec_cmd = "./con/con_full_{} -file {} -wperc {} -n {} -p {} -it {}"
 del_benchmark_exec_cmd = "./del/del_full_{} -n {} -p {} -it {};"
 mix_benchmark_exec_cmd = "./mix/mix_full_{} -n {} -c {} -stream {} -p {} -it {} -wperc {};"
 
@@ -29,7 +32,7 @@ mix_benchmark_exec_cmd = "./mix/mix_full_{} -n {} -c {} -stream {} -p {} -it {} 
 # Parsing arguments
 ###################
 
-default_cap = 1 
+default_cap = 1
 
 parser = argparse.ArgumentParser(description='Parsing parameters to run and graph benchmarks')
 parser.add_argument('-b', '--benchmarks', type=str, default='',
@@ -62,6 +65,8 @@ parser.add_argument('-rf', '--read-from-file', type=bool, default=False,
                     help='write latex table header as well')
 parser.add_argument('-tpc', '--max-tables-per-col', type=int, default=3,
                     help='make algos to put per latex table')
+parser.add_argument('-dist', '--dist', type=str, default="\"/home/gokusper/Downloads/pbbs/bwt/sequenceData/zipf.txt\"",
+                    help='file of distribution to use for keys')
 args = parser.parse_args()
 
 #####################
@@ -84,7 +89,7 @@ print("Number of Threads:", THREAD_NUMS)
 print("Number of Elements:", args.num_elem)
 print("Initial capacity:", args.capacity)
 
-dirName = args.result_directory 
+dirName = args.result_directory
 
 try:
     # Create target Directory
@@ -125,10 +130,10 @@ if not args.read_from_file:
                                     if ID == "s" and num_threads > 1:
                                         continue
                                     if benchmark == "i":
-                                            if args.capacity == default_cap : 
+                                            if args.capacity == default_cap :
                                                 f.write(ins_benchmark_exec_cmd.format(table, args.num_elem, num_threads, args.iterations))
-                                            else: 
-                                                f.write(ins_benchmark_c_exec_cmd.format(table, args.num_elem, args.capacity, num_threads, args.iterations))    
+                                            else:
+                                                f.write(ins_benchmark_c_exec_cmd.format(table, args.num_elem, args.capacity, num_threads, args.iterations))
                                     elif benchmark == "d":
                                             f.write(del_benchmark_exec_cmd.format(table, args.num_elem,
                                                                                                                       num_threads, args.iterations))
@@ -136,6 +141,8 @@ if not args.read_from_file:
                                             f.write(mix_benchmark_exec_cmd.format(table, args.num_elem, args.capacity,
                                                                                                                       args.stream_size, num_threads,
                                                                                                                   args.iterations, args.wperc))
+                                    elif benchmark == "c":
+                                            f.write(con_benchmark_exec_cmd.format(table, args.dist, args.wperc, args.num_elem, num_threads, args.iterations))
                                     f.write("\n")
             subprocess.run(["chmod", "+x", ID_TO_BENCHMARK[benchmark]+".sh"])
 
@@ -173,8 +180,8 @@ for benchmark in args.benchmarks:
                         elif len(current_header) == len(line.split()):
                                 data = get_data(line, current_header)
                                 for col in BENCHMARK_TO_COLS[benchmark]:
-                                        op_per_event = 1 
-                                        if benchmark == "d": 
+                                        op_per_event = 1
+                                        if benchmark == "d":
                                             op_per_event = 2
                                         if benchmark == "m":
                                             DATA[benchmark][col][current_table][int(data["p"])].append(args.stream_size/(1000*float(data[col])))
@@ -253,7 +260,7 @@ with open(dirName+'//'+"robinhood_"+ID_TO_BENCHMARK[benchmark]+".out", "a") as f
         f.write('\n')
 
     #f.write("Speedup " + str(round(Y_VARS[benchmark][col]["robinhood"][-1]/Y_VARS[benchmark][col]["robinhood"][0], 2)))
-    
+
     f.write("Absolute speedup" + str(round(Y_VARS[benchmark][col]["robinhood"][-1]/Y_VARS[benchmark][col]["ska"][0], 2)))
 
 ###################
